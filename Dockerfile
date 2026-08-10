@@ -12,12 +12,23 @@ FROM eclipse-temurin:17-jdk AS build
 
 WORKDIR /build
 
+# La JVM de Maven est bornee, comme celle de l'application : sans cela elle vise
+# un quart de la RAM de la machine hote, soit pres d'un gigaoctet sur un petit
+# serveur deja charge. Le compilateur n'en a pas besoin, et cette reservation
+# suffit a faire ramer une construction sur une machine modeste.
+ENV MAVEN_OPTS="-Xmx512m -XX:MaxMetaspaceSize=192m -XX:+UseSerialGC"
+
 # Le wrapper et le pom d'abord, seuls : tant que les dependances ne changent
 # pas, Docker reutilise la couche de telechargement meme si le code a change.
 # Copier tout le projet d'un bloc invaliderait ce cache a chaque commit.
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
-RUN chmod +x mvnw && ./mvnw -B -ntp dependency:go-offline
+# `dependency:resolve` et non `go-offline` : ce dernier resout aussi tous les
+# greffons du cycle par defaut, dont maven-site-plugin, qui tire a lui seul
+# Doxia, Flexmark et Jetty — une cinquantaine d'archives que cette construction
+# n'utilise jamais. Sur un serveur contraint, c'est du temps, de la bande
+# passante et de la memoire depenses pour rien.
+RUN chmod +x mvnw && ./mvnw -B -ntp dependency:resolve
 
 COPY src/ src/
 # Les tests ne tournent pas ici : ils demarrent un PostgreSQL via Testcontainers,
