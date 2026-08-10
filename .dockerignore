@@ -1,0 +1,31 @@
+# Ce qui n'a rien a faire dans le contexte de build : tout ce qui est envoye au
+# demon Docker ralentit le build, et le `target/` local ecraserait celui compile
+# dans l'image.
+target/
+.git/
+.gitignore
+.idea/
+.vscode/
+docs/
+backups/
+secrets/
+
+# Un secret copie par megarde dans une couche d'image y reste, meme supprime
+# dans une couche suivante.
+.env
+.env.*
+!.env.example
+*service-account*.json
+firebase-*.json
+*.pem
+*.key
+*.p12
+*.jks
+
+# Rapports de crash de la JVM et journaux locaux.
+hs_err_pid*.log
+replay_pid*.log
+
+# Le compose de developpement ne sert pas en production, et le module
+# spring-boot-docker-compose le chercherait dans l'image.
+compose.yaml

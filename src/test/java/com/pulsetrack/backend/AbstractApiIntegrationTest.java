@@ -28,15 +28,35 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * qui heritent d'ici : le conteneur Postgres ne demarre qu'une fois.
  */
 @SpringBootTest(properties = {
-        // La base des tests vient de Testcontainers, pas de compose.yaml.
-        "spring.docker.compose.enabled=false",
-        // Un traitement planifie qui se declenche au milieu d'une suite de tests
-        // la rendrait non reproductible.
-        "pulsetrack.reminders.enabled=false"
+        AbstractApiIntegrationTest.NO_DOCKER_COMPOSE,
+        AbstractApiIntegrationTest.NO_REMINDERS,
+        AbstractApiIntegrationTest.NO_LOGIN_QUOTA,
+        AbstractApiIntegrationTest.NO_REGISTER_QUOTA
 })
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 public abstract class AbstractApiIntegrationTest {
+
+    /** La base des tests vient de Testcontainers, pas de {@code compose.yaml}. */
+    public static final String NO_DOCKER_COMPOSE = "spring.docker.compose.enabled=false";
+
+    /**
+     * Un traitement planifie qui se declenche au milieu d'une suite de tests la
+     * rendrait non reproductible.
+     */
+    public static final String NO_REMINDERS = "pulsetrack.reminders.enabled=false";
+
+    /**
+     * MockMvc fait venir toutes les requetes de la meme adresse : avec les
+     * plafonds reels, la suite entiere se ferait refuser des la sixieme
+     * inscription. Les limites sont donc neutralisees ici, et eprouvees dans
+     * {@code AuthRateLimitApiIntegrationTest}, qui redeclare {@code @SpringBootTest}
+     * avec des valeurs basses.
+     */
+    public static final String NO_LOGIN_QUOTA = "pulsetrack.security.rate-limit.login.max-attempts=100000";
+
+    /** Voir {@link #NO_LOGIN_QUOTA}. */
+    public static final String NO_REGISTER_QUOTA = "pulsetrack.security.rate-limit.register.max-attempts=100000";
 
     @Autowired
     protected MockMvc mockMvc;

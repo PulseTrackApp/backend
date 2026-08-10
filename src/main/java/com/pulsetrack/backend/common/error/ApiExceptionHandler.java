@@ -2,6 +2,7 @@ package com.pulsetrack.backend.common.error;
 
 import java.net.URI;
 import java.time.DateTimeException;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -50,9 +51,22 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
                 ex.getMessage(), "business-rule");
     }
 
+    /**
+     * L'en-tete {@code Retry-After} est renseigne quand le delai est connu : il
+     * indique au client la seconde a partir de laquelle retenter, plutot que de
+     * le laisser marteler l'endpoint.
+     */
     @ExceptionHandler(RateLimitedException.class)
-    ProblemDetail handleRateLimited(RateLimitedException ex) {
-        return problem(HttpStatus.TOO_MANY_REQUESTS, "Quota atteint", ex.getMessage(), "rate-limited");
+    ResponseEntity<ProblemDetail> handleRateLimited(RateLimitedException ex) {
+        ProblemDetail body = problem(HttpStatus.TOO_MANY_REQUESTS, "Quota atteint",
+                ex.getMessage(), "rate-limited");
+
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS);
+        // Arrondi au superieur : annoncer 0 seconde inviterait a retenter
+        // immediatement, pour se faire refuser a nouveau.
+        ex.retryAfter().ifPresent(delay ->
+                response.header(HttpHeaders.RETRY_AFTER, Long.toString(Math.max(1, ceilSeconds(delay)))));
+        return response.body(body);
     }
 
     /**
@@ -72,6 +86,17 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         // passe faux" permettrait d'enumerer les comptes existants.
         return problem(HttpStatus.UNAUTHORIZED, "Authentification refusee",
                 "Email ou mot de passe incorrect.", "bad-credentials");
+    }
+
+    /**
+     * Le detail est volontairement le meme quelle que soit la raison du refus
+     * (jeton inconnu, expire, revoque) : le distinguer permettrait de tester des
+     * jetons au hasard et de savoir lesquels ont existe.
+     */
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    ProblemDetail handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+        return problem(HttpStatus.UNAUTHORIZED, "Session expiree",
+                "Session expiree, veuillez vous reconnecter.", "invalid-refresh-token");
     }
 
     /**
@@ -128,6 +153,10 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
                 "Un ou plusieurs champs sont invalides.", "validation");
         body.setProperty("errors", fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    private static long ceilSeconds(Duration delay) {
+        return (delay.toMillis() + 999) / 1000;
     }
 
     private ProblemDetail problem(HttpStatus status, String title, String detail, String type) {

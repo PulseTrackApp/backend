@@ -45,10 +45,29 @@ pulsetrack:
   security:
     jwt:
       # Secret de DEVELOPPEMENT uniquement. En production il DOIT venir de
-      # l'environnement (PULSETRACK_SECURITY_JWT_SECRET) : voir application-prod.yml.
+      # l'environnement (PULSETRACK_JWT_SECRET) : voir application-prod.yml.
+      # Le prefixe `dev-only-` est reconnu par DevelopmentSecretWarner, qui
+      # alerte au demarrage tant qu'il est en place.
       secret: 'dev-only-secret-change-me-0123456789-abcdefghijklmnopqrstuvwxyz'
       issuer: 'pulsetrack'
       access-token-ttl: PT24H
+    refresh-token:
+      # Trente jours : c'est la duree pendant laquelle le client mobile peut
+      # renouveler sa session sans redemander le mot de passe. Contrairement au
+      # jeton d'acces, celui-ci est revocable a tout moment.
+      ttl: P30D
+    rate-limit:
+      # Plafonds des endpoints ouverts. Comptes separement par adresse IP et,
+      # pour la connexion, par compte vise.
+      login:
+        # Assez large pour un utilisateur qui se trompe, largement trop etroit
+        # pour essayer un dictionnaire de mots de passe.
+        max-attempts: 10
+        window: PT5M
+      register:
+        # Personne ne cree cinq comptes par heure de bonne foi.
+        max-attempts: 5
+        window: PT1H
     cors:
       # Origines autorisees pour un client web (Flutter web en dev).
       # L'app mobile native n'est pas soumise au CORS.

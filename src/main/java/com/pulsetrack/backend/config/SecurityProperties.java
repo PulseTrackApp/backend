@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.List;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -18,13 +19,17 @@ import org.springframework.validation.annotation.Validated;
  * configuree doit refuser de demarrer plutot que de signer des jetons avec un
  * secret vide.
  *
- * @param jwt        parametres de signature et de duree de vie des jetons
- * @param cors       origines autorisees pour un client navigateur
- * @param encryption secret servant a chiffrer les donnees sensibles au repos
+ * @param jwt          parametres de signature et de duree de vie des jetons
+ * @param refreshToken duree de vie des jetons de renouvellement
+ * @param rateLimit    plafonds de tentatives sur les endpoints d'authentification
+ * @param cors         origines autorisees pour un client navigateur
+ * @param encryption   secret servant a chiffrer les donnees sensibles au repos
  */
 @ConfigurationProperties(prefix = "pulsetrack.security")
 @Validated
 public record SecurityProperties(@NotNull @Valid Jwt jwt,
+                                 @NotNull @Valid RefreshToken refreshToken,
+                                 @NotNull @Valid RateLimit rateLimit,
                                  @NotNull @Valid Cors cors,
                                  @NotNull @Valid Encryption encryption) {
 
@@ -38,6 +43,37 @@ public record SecurityProperties(@NotNull @Valid Jwt jwt,
             String secret,
             @NotBlank String issuer,
             @NotNull Duration accessTokenTtl) {
+    }
+
+    /**
+     * Jeton de renouvellement : opaque, stocke hache en base, donc revocable —
+     * contrairement au jeton d'acces, qu'aucun serveur ne peut rappeler une fois
+     * signe.
+     *
+     * @param ttl duree de validite ; c'est elle qui borne la reconnexion
+     *            silencieuse du client mobile
+     */
+    public record RefreshToken(@NotNull Duration ttl) {
+    }
+
+    /**
+     * Plafonds appliques aux endpoints ouverts.
+     *
+     * <p>Sans eux, {@code /auth/login} accepte autant de propositions de mot de
+     * passe que la machine peut en verifier, et {@code /auth/register} permet de
+     * remplir la base de comptes fantomes.
+     *
+     * @param login    tentatives de connexion
+     * @param register creations de compte
+     */
+    public record RateLimit(@NotNull @Valid Policy login, @NotNull @Valid Policy register) {
+
+        /**
+         * @param maxAttempts tentatives tolerees par fenetre
+         * @param window      duree de la fenetre
+         */
+        public record Policy(@Min(1) int maxAttempts, @NotNull Duration window) {
+        }
     }
 
     /**

@@ -1,12 +1,14 @@
 package com.pulsetrack.backend.config;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.util.List;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.pulsetrack.backend.common.ratelimit.FixedWindowRateLimiter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,8 +47,24 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // Seules l'inscription, la connexion et la sonde de sante sont ouvertes.
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Chemins ouverts enumeres un par un, et non
+                        // `/api/v1/auth/**` : un joker rend public tout ce qu'on
+                        // ajoutera plus tard sous ce prefixe, y compris ce qui ne
+                        // devait pas l'etre. C'est exactement le cas de
+                        // `/api/v1/auth/logout`, qui exige un jeton d'acces et que
+                        // le joker aurait ouvert a tout le monde.
+                        //
+                        // La methode est contrainte elle aussi : un GET sur
+                        // `/api/v1/auth/login` n'a aucune raison d'exister, et le
+                        // laisser passer offre une surface de plus.
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/login",
+                                // Ouvert par nature : on vient le solliciter
+                                // precisement parce que le jeton d'acces a expire.
+                                // C'est la possession du jeton de renouvellement,
+                                // verifiee en base, qui authentifie l'appel.
+                                "/api/v1/auth/refresh").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         // Documentation de l'API. Sans danger : le profil `prod`
                         // desactive springdoc, ces routes n'y existent donc pas.
@@ -86,6 +104,17 @@ public class SecurityConfig {
     @Bean
     TextEncryptor apiKeyEncryptor(SecurityProperties properties) {
         return Encryptors.delux(properties.encryption().password(), properties.encryption().salt());
+    }
+
+    /**
+     * Compteur partage par les limites appliquees aux endpoints ouverts.
+     *
+     * <p>Un seul bean : les compteurs vivent dans son instance, en avoir deux
+     * reviendrait a doubler silencieusement chaque plafond.
+     */
+    @Bean
+    FixedWindowRateLimiter authRateLimiterCounters() {
+        return new FixedWindowRateLimiter(Clock.systemUTC());
     }
 
     @Bean

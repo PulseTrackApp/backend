@@ -14,6 +14,17 @@ spring:
   jpa:
     show-sql: false
 
+server:
+  # Derriere le proxy de Coolify, `getRemoteAddr()` renvoie sinon l'adresse du
+  # proxy : toutes les requetes du monde partageraient alors un seul quota de
+  # connexion, et la limitation de debit ne protegerait plus rien.
+  #
+  # Sur ce reglage, l'application fait confiance a `X-Forwarded-For`. C'est
+  # legitime ici parce que le proxy est le seul chemin d'entree : le conteneur
+  # ne publie aucun port, personne ne peut le joindre en direct pour forger
+  # l'en-tete.
+  forward-headers-strategy: framework
+
 pulsetrack:
   security:
     jwt:

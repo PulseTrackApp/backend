@@ -7,13 +7,15 @@ import com.pulsetrack.backend.AbstractApiIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Contrat de l'inscription, de la connexion et de la fermeture par defaut.
+ * Contrat de l'inscription, de la connexion, du renouvellement de session et de
+ * la fermeture par defaut.
  */
 class AuthApiIntegrationTest extends AbstractApiIntegrationTest {
 
@@ -120,6 +122,170 @@ class AuthApiIntegrationTest extends AbstractApiIntegrationTest {
     void laisse_passer_la_sonde_de_sante_sans_authentification() throws Exception {
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk());
+    }
+
+    // -----------------------------------------------------------------------
+    // Chemins ouverts : enumeres un par un, plus de joker `/api/v1/auth/**`
+    // -----------------------------------------------------------------------
+
+    @Test
+    void exige_un_jeton_d_acces_pour_se_deconnecter() throws Exception {
+        // C'est tout l'interet d'avoir supprime le joker : `/auth/logout` vit
+        // sous le meme prefixe que la connexion, mais n'est pas public.
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken": "peu-importe"}
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void n_ouvre_pas_les_chemins_inconnus_sous_le_prefixe_d_authentification() throws Exception {
+        // Avec le joker, cette requete arrivait jusqu'au routage et repondait
+        // 404 — ce qui revenait a annoncer que le chemin n'existe pas encore.
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void n_ouvre_que_la_methode_POST_sur_les_chemins_d_authentification() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/login"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // -----------------------------------------------------------------------
+    // Jetons de renouvellement
+    // -----------------------------------------------------------------------
+
+    @Test
+    void renvoie_un_jeton_de_renouvellement_a_l_inscription() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerBody(uniqueEmail(), "motdepasse123")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshExpiresInSeconds").value(30 * 24 * 3600));
+    }
+
+    @Test
+    void renouvelle_une_session_et_fait_tourner_le_jeton() throws Exception {
+        String refreshToken = registerAndReadRefreshToken();
+
+        String renewed = mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+
+        // Rotation : le jeton presente est consomme, un neuf le remplace.
+        assertThat(json(renewed).get("refreshToken").asText()).isNotEqualTo(refreshToken);
+    }
+
+    @Test
+    void refuse_un_jeton_de_renouvellement_inconnu() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody("jeton-completement-invente")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Session expiree, veuillez vous reconnecter."));
+    }
+
+    @Test
+    void revoque_toutes_les_sessions_au_rejeu_d_un_jeton_deja_consomme() throws Exception {
+        String stolen = registerAndReadRefreshToken();
+
+        String renewed = mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody(stolen)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String current = json(renewed).get("refreshToken").asText();
+
+        // Le jeton derobe est rejoue : on ne sait pas lequel des deux porteurs
+        // est le bon, donc les deux perdent la main.
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody(stolen)))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody(current)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void ferme_la_session_a_la_deconnexion() throws Exception {
+        String response = register(uniqueEmail());
+        String authorization = "Bearer " + json(response).get("accessToken").asText();
+        String refreshToken = json(response).get("refreshToken").asText();
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody(refreshToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody(refreshToken)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void accepte_une_deconnexion_rejouee_sans_broncher() throws Exception {
+        String response = register(uniqueEmail());
+        String authorization = "Bearer " + json(response).get("accessToken").asText();
+        String refreshToken = json(response).get("refreshToken").asText();
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/logout")
+                            .header("Authorization", authorization)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(refreshBody(refreshToken)))
+                    .andExpect(status().isNoContent());
+        }
+    }
+
+    @Test
+    void ne_laisse_pas_deconnecter_la_session_d_un_autre_compte() throws Exception {
+        String victimRefreshToken = registerAndReadRefreshToken();
+        String attacker = "Bearer " + json(register(uniqueEmail())).get("accessToken").asText();
+
+        // Repond 204 sans rien faire : ne pas distinguer les deux cas evite de
+        // confirmer a l'appelant qu'un jeton devine existe bel et bien.
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", attacker)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody(victimRefreshToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshBody(victimRefreshToken)))
+                .andExpect(status().isOk());
+    }
+
+    private String registerAndReadRefreshToken() throws Exception {
+        return json(register(uniqueEmail())).get("refreshToken").asText();
+    }
+
+    private String register(String email) throws Exception {
+        return mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerBody(email, "motdepasse123")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    private String refreshBody(String refreshToken) {
+        return """
+                {"refreshToken": "%s"}
+                """.formatted(refreshToken);
     }
 
     private String uniqueEmail() {

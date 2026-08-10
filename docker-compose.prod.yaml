@@ -1,0 +1,95 @@
+# Deploiement de production, pilote par Coolify.
+#
+# Coolify construit l'image depuis le Dockerfile, injecte les variables definies
+# dans l'interface, et publie l'API derriere son proxy. Les valeurs sensibles
+# n'ont donc aucune valeur par defaut ici : `${VAR:?message}` fait echouer le
+# demarrage si l'une manque, ce qui vaut mieux qu'une base ouverte avec le mot
+# de passe « postgres ».
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Base de donnees
+  # ---------------------------------------------------------------------------
+  pulsetrack-db:
+    image: 'postgres:17-alpine'
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pulsetrack}
+      POSTGRES_USER: ${POSTGRES_USER:-pulsetrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?mot de passe PostgreSQL obligatoire}
+    # Aucune section `ports` : la base n'est jointe que par le reseau interne du
+    # compose. Publier 5432 sur l'hote l'exposerait a l'internet entier, et un
+    # PostgreSQL accessible c'est toute la donnee des utilisateurs.
+    volumes:
+      # Volume nomme, pas un bind mount : les donnees survivent a un
+      # redeploiement, que Coolify traite en recreant les conteneurs.
+      - 'pulsetrack-pgdata:/var/lib/postgresql/data'
+    healthcheck:
+      # `-U`/`-d` explicites : sans eux pg_isready interroge la base « postgres »
+      # avec l'utilisateur du systeme et repond sain avant que la notre existe.
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-pulsetrack} -d ${POSTGRES_DB:-pulsetrack}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # PostgreSQL redemarre son processus pendant l'initialisation du volume :
+      # sans ce delai, les premieres sondes le declarent mort a tort.
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # API
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      pulsetrack-db:
+        # Attendre le demarrage ne suffit pas : Flyway ouvre une connexion des
+        # les premieres secondes et echouerait sur une base pas encore prete.
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+
+      # Nom de service comme hote : le DNS interne du compose le resout, et
+      # aucun port n'a besoin d'etre publie.
+      DATABASE_URL: 'jdbc:postgresql://pulsetrack-db:5432/${POSTGRES_DB:-pulsetrack}'
+      DATABASE_USERNAME: ${POSTGRES_USER:-pulsetrack}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?mot de passe PostgreSQL obligatoire}
+
+      # 32 caracteres minimum, valide au demarrage. A generer avec
+      # `openssl rand -base64 48` — jamais une phrase choisie a la main.
+      PULSETRACK_JWT_SECRET: ${PULSETRACK_JWT_SECRET:?secret JWT obligatoire}
+      # Changer ce couple rend illisibles les cles Gemini deja stockees.
+      PULSETRACK_ENCRYPTION_PASSWORD: ${PULSETRACK_ENCRYPTION_PASSWORD:?secret de chiffrement obligatoire}
+      PULSETRACK_ENCRYPTION_SALT: ${PULSETRACK_ENCRYPTION_SALT:?sel de chiffrement obligatoire}
+      # Liste separee par des virgules. Sert au client web ; l'application
+      # mobile native n'est pas soumise au CORS.
+      PULSETRACK_CORS_ORIGINS: ${PULSETRACK_CORS_ORIGINS:?origines CORS obligatoires}
+
+      PULSETRACK_GEMINI_API_KEY: ${PULSETRACK_GEMINI_API_KEY:-}
+      PULSETRACK_FCM_ENABLED: ${PULSETRACK_FCM_ENABLED:-false}
+      PULSETRACK_FCM_PROJECT_ID: ${PULSETRACK_FCM_PROJECT_ID:-}
+      PULSETRACK_FCM_CREDENTIALS: ${PULSETRACK_FCM_CREDENTIALS:-}
+
+      # Coolify genere le domaine et configure son proxy a partir de cette
+      # variable. Le format est SERVICE_FQDN_<SERVICE>_<PORT>.
+      SERVICE_FQDN_APP_8080: /
+
+    # `expose` et non `ports` : le proxy de Coolify partage le reseau du
+    # compose, il n'a pas besoin que le port soit publie sur l'hote.
+    expose:
+      - '8080'
+
+    # Meme borne que les `JAVA_OPTS` du Dockerfile : la JVM se sait dans un
+    # conteneur limite et ajuste ses valeurs par defaut en consequence. Sans
+    # cette limite, une fuite memoire ferait tomber la machine entiere, base
+    # comprise, au lieu du seul conteneur applicatif.
+    mem_limit: 640m
+
+    # Le temps de vider le pool de connexions et de finir les requetes en cours.
+    stop_grace_period: 30s
+
+volumes:
+  pulsetrack-pgdata:
