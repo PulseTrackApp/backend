@@ -32,7 +32,10 @@ pulsetrack:
       # ce qui vaut mieux que de signer les jetons avec un secret connu de tous.
       secret: ${PULSETRACK_JWT_SECRET}
     cors:
-      allowed-origins: ${PULSETRACK_CORS_ORIGINS}
+      # Facultatif : seul un client navigateur est soumis au CORS, et
+      # l'application mobile native ne l'est pas. Laissee vide, aucune regle
+      # n'est posee — a renseigner le jour ou un front web appellera l'API.
+      allowed-origins: ${PULSETRACK_CORS_ORIGINS:}
     encryption:
       password: ${PULSETRACK_ENCRYPTION_PASSWORD}
       salt: ${PULSETRACK_ENCRYPTION_SALT}

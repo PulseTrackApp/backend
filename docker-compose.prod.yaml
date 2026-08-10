@@ -64,9 +64,10 @@ services:
       # Changer ce couple rend illisibles les cles Gemini deja stockees.
       PULSETRACK_ENCRYPTION_PASSWORD: ${PULSETRACK_ENCRYPTION_PASSWORD:?secret de chiffrement obligatoire}
       PULSETRACK_ENCRYPTION_SALT: ${PULSETRACK_ENCRYPTION_SALT:?sel de chiffrement obligatoire}
-      # Liste separee par des virgules. Sert au client web ; l'application
-      # mobile native n'est pas soumise au CORS.
-      PULSETRACK_CORS_ORIGINS: ${PULSETRACK_CORS_ORIGINS:?origines CORS obligatoires}
+      # Facultatif, et vide sur un projet mobile : le CORS ne s'applique qu'aux
+      # clients navigateur. A renseigner (liste separee par des virgules) le
+      # jour ou un front web appellera l'API.
+      PULSETRACK_CORS_ORIGINS: ${PULSETRACK_CORS_ORIGINS:-}
 
       PULSETRACK_GEMINI_API_KEY: ${PULSETRACK_GEMINI_API_KEY:-}
       PULSETRACK_FCM_ENABLED: ${PULSETRACK_FCM_ENABLED:-false}

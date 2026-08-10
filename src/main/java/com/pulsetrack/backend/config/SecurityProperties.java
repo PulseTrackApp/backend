@@ -6,7 +6,6 @@ import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -77,10 +76,18 @@ public record SecurityProperties(@NotNull @Valid Jwt jwt,
     }
 
     /**
-     * @param allowedOrigins liste blanche d'origines ; jamais {@code *}, car les
-     *                       requetes portent un en-tete Authorization
+     * Origines autorisees pour un client navigateur.
+     *
+     * <p>Facultatif a dessein : le CORS ne concerne que les navigateurs, et
+     * l'application mobile native n'y est pas soumise. Sur un projet sans front
+     * web, la liste reste vide et aucune regle n'est posee — plutot que de
+     * forcer l'exploitant a inventer un domaine pour que l'application demarre.
+     *
+     * @param allowedOrigins liste blanche d'origines, vide si aucun client web ;
+     *                       jamais {@code *}, car cela reviendrait a laisser
+     *                       n'importe quelle page du web lire les reponses
      */
-    public record Cors(@NotEmpty List<String> allowedOrigins) {
+    public record Cors(@NotNull List<String> allowedOrigins) {
     }
 
     /**

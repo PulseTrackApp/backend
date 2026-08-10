@@ -133,16 +133,34 @@ public class SecurityConfig {
         return decoder;
     }
 
+    /**
+     * Autorisations CORS, uniquement si des origines sont declarees.
+     *
+     * <p>Le CORS ne concerne que les clients navigateur. Une application mobile
+     * native n'envoie pas d'en-tete {@code Origin} et n'est jamais soumise a ce
+     * controle : sur un projet sans front web, la liste reste vide et aucune
+     * regle n'est enregistree. Exiger une valeur reviendrait a faire inventer
+     * un domaine a l'exploitant pour satisfaire la configuration.
+     *
+     * <p>Liste vide veut bien dire « aucune page web autorisee », et non
+     * « toutes » : la source ne connait alors aucun chemin, le filtre CORS
+     * n'ajoute aucun en-tete, et le navigateur bloque de lui-meme la reponse.
+     */
     @Bean
     CorsConfigurationSource corsConfigurationSource(SecurityProperties properties) {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        List<String> allowedOrigins = properties.cors().allowedOrigins();
+        if (allowedOrigins.isEmpty()) {
+            return source;
+        }
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(properties.cors().allowedOrigins());
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         // Pas de credentials : l'authentification passe par l'en-tete
         // Authorization, pas par un cookie.
         configuration.setAllowCredentials(false);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         return source;
     }
