@@ -1,0 +1,97 @@
+spring:
+  application:
+    name: pulsetrack-backend
+
+  jpa:
+    hibernate:
+      # Le schema est gere par Flyway. `validate` fait echouer le demarrage si les
+      # entites et les migrations divergent : c'est le filet de securite.
+      ddl-auto: validate
+    # Ferme la session JPA a la sortie du service : on ne veut pas de requete
+    # declenchee pendant la serialisation JSON (lazy loading masque).
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jackson:
+    default-property-inclusion: non_null
+
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+pulsetrack:
+  security:
+    jwt:
+      # Secret de DEVELOPPEMENT uniquement. En production il DOIT venir de
+      # l'environnement (PULSETRACK_SECURITY_JWT_SECRET) : voir application-prod.yml.
+      secret: 'dev-only-secret-change-me-0123456789-abcdefghijklmnopqrstuvwxyz'
+      issuer: 'pulsetrack'
+      access-token-ttl: PT24H
+    cors:
+      # Origines autorisees pour un client web (Flutter web en dev).
+      # L'app mobile native n'est pas soumise au CORS.
+      allowed-origins:
+        - 'http://localhost:3000'
+        - 'http://localhost:8080'
+    encryption:
+      # Secrets de DEVELOPPEMENT. Changer ce couple rend illisibles les cles
+      # Gemini deja stockees : les utilisateurs devront les ressaisir.
+      password: 'dev-only-encryption-password-change-me'
+      salt: 'a1b2c3d4e5f60718'
+
+  gemini:
+    base-url: 'https://generativelanguage.googleapis.com'
+    # Configurable a dessein : les noms de modeles evoluent vite, et un
+    # renommage cote Google ne doit pas imposer de recompiler.
+    model: 'gemini-2.5-flash'
+    timeout: PT30S
+    max-output-tokens: 900
+    # Cle de niveau serveur, par variable d'environnement. C'est le mode
+    # recommande pour un usage personnel : la cle ne quitte jamais
+    # l'environnement du serveur et n'est jamais ecrite en base.
+    # Laissee vide, l'assistant retombe sur la cle saisie par l'utilisateur.
+    api-key: ${PULSETRACK_GEMINI_API_KEY:}
+
+  push:
+    fcm:
+      # Desactive par defaut : sans projet Firebase, l'application doit demarrer
+      # et fonctionner normalement, en journalisant les envois au lieu de les faire.
+      enabled: false
+      project-id: ''
+      # Chemin du JSON de compte de service telecharge depuis la console Firebase.
+      credentials-location: ''
+
+  reminders:
+    enabled: true
+    # Fuseau des rappels planifies. Mono-utilisateur : une seule valeur suffit.
+    zone: 'Africa/Ouagadougou'
+    # Dimanche 19h : rappel de la pesee hebdomadaire.
+    weekly-checkin-cron: '0 0 19 * * SUN'
+    # Dimanche 10h : alerte si les objectifs de la semaine sont loin d'etre atteints.
+    effort-warning-cron: '0 0 10 * * SUN'
+
+logging:
+  level:
+    com.pulsetrack.backend: DEBUG

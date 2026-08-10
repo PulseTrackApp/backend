@@ -1,0 +1,66 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### Documentation interne, non publiee ###
+# Specifications produit, notes d'architecture et tout ce qui decrit le
+# fonctionnement interne de l'assistant IA. Ces fichiers restent sur le poste de
+# developpement, ils ne partent pas sur GitHub.
+docs/
+*.spec.md
+*-spec.md
+NOTES.md
+PROMPTS.md
+
+### Secrets et donnees ###
+# Comptes de service Firebase, cles, fichiers d'environnement : rien de tout
+# cela ne doit pouvoir etre committe par accident.
+*service-account*.json
+firebase-*.json
+*.pem
+*.key
+*.p12
+*.jks
+.env
+.env.*
+!.env.example
+secrets/
+
+### Sauvegardes de la base ###
+backups/
+*.sql.gz
+*.dump
+
+### Rapports de crash de la JVM ###
+hs_err_pid*.log
+replay_pid*.log
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/

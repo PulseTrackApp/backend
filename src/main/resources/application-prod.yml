@@ -1,0 +1,51 @@
+# Profil production : rien de sensible en dur, tout vient de l'environnement.
+# Active avec SPRING_PROFILES_ACTIVE=prod.
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+
+  docker:
+    compose:
+      # Pas de docker-compose en production : la base est fournie par la plateforme.
+      enabled: false
+
+  jpa:
+    show-sql: false
+
+pulsetrack:
+  security:
+    jwt:
+      # Aucune valeur par defaut : le demarrage echoue si le secret est absent,
+      # ce qui vaut mieux que de signer les jetons avec un secret connu de tous.
+      secret: ${PULSETRACK_JWT_SECRET}
+    cors:
+      allowed-origins: ${PULSETRACK_CORS_ORIGINS}
+    encryption:
+      password: ${PULSETRACK_ENCRYPTION_PASSWORD}
+      salt: ${PULSETRACK_ENCRYPTION_SALT}
+
+  gemini:
+    api-key: ${PULSETRACK_GEMINI_API_KEY:}
+
+  push:
+    fcm:
+      enabled: ${PULSETRACK_FCM_ENABLED:false}
+      project-id: ${PULSETRACK_FCM_PROJECT_ID:}
+      credentials-location: ${PULSETRACK_FCM_CREDENTIALS:}
+
+# La documentation interactive decrit toute la surface de l'API : on ne la publie
+# pas en production.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    com.pulsetrack.backend: INFO
+  structured:
+    format:
+      console: ecs

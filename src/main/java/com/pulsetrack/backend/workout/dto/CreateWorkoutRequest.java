@@ -1,0 +1,37 @@
+package com.pulsetrack.backend.workout.dto;
+
+import java.time.Instant;
+import java.util.List;
+
+import com.pulsetrack.backend.common.domain.SportType;
+import com.pulsetrack.backend.workout.Feeling;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+/**
+ * Enregistrement d'une seance terminee.
+ *
+ * <p>Le client n'envoie que ce qu'il a observe : le sport, la fenetre de temps,
+ * le trace et son ressenti. Distance, allure, vitesses, denivele et calories sont
+ * calcules par le serveur et ne sont pas acceptes en entree.
+ *
+ * @param distanceMeters distance declaree, prise en compte uniquement quand le
+ *                       trace est absent ou trop court (seance en salle)
+ * @param gpsPoints      trace du parcours ; peut etre vide ou absent
+ */
+public record CreateWorkoutRequest(
+        @NotNull SportType sportType,
+        @NotNull Instant startedAt,
+        @NotNull Instant endedAt,
+        @DecimalMin("0.0") Double distanceMeters,
+        @Min(1) @Max(10) Integer perceivedEffort,
+        Feeling feeling,
+        @Size(max = 2000) String note,
+        @Size(max = 50_000, message = "trace trop volumineux : 50 000 points maximum")
+        List<@Valid GpsPointRequest> gpsPoints) {
+}
