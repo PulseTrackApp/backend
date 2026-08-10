@@ -47,6 +47,13 @@ pulsetrack:
     fcm:
       enabled: ${PULSETRACK_FCM_ENABLED:false}
       project-id: ${PULSETRACK_FCM_PROJECT_ID:}
+      # Contenu du JSON de compte de service, encode en base64. C'est la forme
+      # retenue en production : Coolify sait chiffrer et gerer une variable
+      # d'environnement, mais ne sait pas alimenter le contenu d'un fichier
+      # monte depuis un compose.
+      credentials-base64: ${PULSETRACK_FCM_CREDENTIALS_BASE64:}
+      # Voie alternative, pour un hebergeur capable de monter un vrai fichier.
+      # Ignoree des que la variable ci-dessus est renseignee.
       credentials-location: ${PULSETRACK_FCM_CREDENTIALS:}
 
 # La documentation interactive decrit toute la surface de l'API : on ne la publie

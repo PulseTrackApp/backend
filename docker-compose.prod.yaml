@@ -75,34 +75,19 @@ services:
       # enregistre, les activer n'enverrait rien de toute facon.
       PULSETRACK_FCM_ENABLED: ${PULSETRACK_FCM_ENABLED:-false}
       PULSETRACK_FCM_PROJECT_ID: ${PULSETRACK_FCM_PROJECT_ID:-}
-      # Doit designer le point de montage declare plus bas. Le prefixe `file:`
-      # est obligatoire : sans lui, Spring cherche la ressource dans le
-      # classpath et le demarrage echoue.
-      PULSETRACK_FCM_CREDENTIALS: ${PULSETRACK_FCM_CREDENTIALS:-file:/app/secrets/firebase-service-account.json}
+      # Contenu du JSON de compte de service, encode en base64 :
+      #   base64 -w0 firebase-service-account.json
+      #
+      # Pas un fichier monte, a dessein. Coolify annonce lui-meme que « volume
+      # mounts are read-only in the dashboard » pour une application compose :
+      # il respecte le montage declare ici, mais ne sait pas en alimenter le
+      # contenu, et le fichier n'a aucune raison d'etre dans le depot. Une
+      # variable, elle, se saisit et se chiffre dans son interface.
+      PULSETRACK_FCM_CREDENTIALS_BASE64: ${PULSETRACK_FCM_CREDENTIALS_BASE64:-}
 
       # Coolify genere le domaine et configure son proxy a partir de cette
       # variable. Le format est SERVICE_FQDN_<SERVICE>_<PORT>.
       SERVICE_FQDN_APP_8080: /
-
-    volumes:
-      # Compte de service Firebase, en lecture seule : l'application n'a besoin
-      # que de le lire, et un conteneur compromis ne doit pas pouvoir le
-      # remplacer par un compte qu'il controle.
-      #
-      # Le contenu ne vient PAS du depot — le fichier y est ignore par git et
-      # exclu du contexte Docker. Il est fourni par Coolify : service `app`,
-      # onglet Storages, ajout d'un montage de type fichier dont la destination
-      # est exactement le chemin de droite ci-dessous. Coolify materialise le
-      # fichier sur l'hote avant de lancer le compose et conserve son contenu
-      # dans sa propre base, plutot qu'en clair dans le dossier du projet.
-      #
-      # Piege a connaitre : si la source n'existe pas au demarrage, Docker cree
-      # un REPERTOIRE vide a sa place. Sans consequence tant que
-      # PULSETRACK_FCM_ENABLED vaut false, puisque personne ne le lit ; avec
-      # `true`, le demarrage echoue aussitot sur « Compte de service Firebase
-      # illisible ». Mieux vaut l'apprendre la qu'un dimanche soir, au moment
-      # ou le rappel devait partir.
-      - './secrets/firebase-service-account.json:/app/secrets/firebase-service-account.json:ro'
 
     # `expose` et non `ports` : le proxy de Coolify partage le reseau du
     # compose, il n'a pas besoin que le port soit publie sur l'hote.

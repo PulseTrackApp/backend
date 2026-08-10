@@ -99,8 +99,13 @@ pulsetrack:
       # et fonctionner normalement, en journalisant les envois au lieu de les faire.
       enabled: false
       project-id: ''
-      # Chemin du JSON de compte de service telecharge depuis la console Firebase.
+      # Chemin du JSON de compte de service telecharge depuis la console
+      # Firebase. En local, le fichier ignore par git convient :
+      # file:./secrets/firebase-service-account.json
       credentials-location: ''
+      # Meme contenu encode en base64, pour un hebergeur qui ne sait pas monter
+      # de fichier. Prioritaire sur credentials-location.
+      credentials-base64: ''
 
   reminders:
     enabled: true
