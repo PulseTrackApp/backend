@@ -10,6 +10,8 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.web.client.RestClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -103,6 +105,41 @@ class PushConfigCredentialsTest {
                 // alerte : la valeur recue ne doit y figurer sous aucune forme.
                 .hasMessageNotContaining("FUITE-A-NE-PAS-JOURNALISER")
                 .hasMessageNotContaining(encoded);
+    }
+
+    @Test
+    void refuse_de_demarrer_si_fcm_est_actif_sans_compte_de_service() {
+        // Vu en production : FCM active dans l'interface d'hebergement, mais la
+        // variable du compte de service laissee vide. Le contexte Spring echoue
+        // et le conteneur sort — c'est voulu, mais le message doit dire quoi
+        // renseigner, faute de quoi la cause se cherche longtemps.
+        PushProperties properties = new PushProperties(true, "gymflow-52ef1", "", "");
+
+        assertThatThrownBy(() -> new PushConfig()
+                .fcmPushSender(RestClient.builder(), properties, new DefaultResourceLoader()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("exige un compte de service")
+                .hasMessageContaining("credentials-base64");
+    }
+
+    @Test
+    void refuse_de_demarrer_si_fcm_est_actif_sans_identifiant_de_projet() {
+        PushProperties properties = new PushProperties(true, "", null, base64(serviceAccountJson()));
+
+        assertThatThrownBy(() -> new PushConfig()
+                .fcmPushSender(RestClient.builder(), properties, new DefaultResourceLoader()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("project-id");
+    }
+
+    @Test
+    void demarre_avec_fcm_actif_et_un_compte_de_service_complet() {
+        PushProperties properties =
+                new PushProperties(true, "gymflow-52ef1", null, base64(serviceAccountJson()));
+
+        assertThat(new PushConfig().fcmPushSender(
+                RestClient.builder(), properties, new DefaultResourceLoader()))
+                .isInstanceOf(FcmPushSender.class);
     }
 
     private static String base64(String content) {
