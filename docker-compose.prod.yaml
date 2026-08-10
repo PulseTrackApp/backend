@@ -71,6 +71,10 @@ services:
 
       PULSETRACK_GEMINI_API_KEY: ${PULSETRACK_GEMINI_API_KEY:-}
 
+      # Swagger UI et le document OpenAPI. Actifs par defaut ; passer a `false`
+      # les retire sans redeployer de code.
+      PULSETRACK_DOCS_ENABLED: ${PULSETRACK_DOCS_ENABLED:-true}
+
       # Notifications push. Desactivees par defaut : sans jeton d'appareil
       # enregistre, les activer n'enverrait rien de toute facon.
       PULSETRACK_FCM_ENABLED: ${PULSETRACK_FCM_ENABLED:-false}

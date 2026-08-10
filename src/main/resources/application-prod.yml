@@ -56,13 +56,22 @@ pulsetrack:
       # Ignoree des que la variable ci-dessus est renseignee.
       credentials-location: ${PULSETRACK_FCM_CREDENTIALS:}
 
-# La documentation interactive decrit toute la surface de l'API : on ne la publie
-# pas en production.
+# Documentation interactive. Elle decrit toute la surface de l'API : qui la
+# consulte sait exactement quels endpoints existent et quelles formes ils
+# attendent. C'est commode pour developper, et c'est autant de renseignement
+# offert a qui cherche une faille.
+#
+# Publiee ici a la demande, mais gardee sous interrupteur : passer
+# PULSETRACK_DOCS_ENABLED a `false` la retire sans redeployer de code.
+#
+# Cela ne rend rien d'autre accessible : hors inscription, connexion et
+# renouvellement, chaque endpoint exige toujours un jeton valide. La
+# documentation dit ce qui existe, elle n'ouvre aucune porte.
 springdoc:
   api-docs:
-    enabled: false
+    enabled: ${PULSETRACK_DOCS_ENABLED:true}
   swagger-ui:
-    enabled: false
+    enabled: ${PULSETRACK_DOCS_ENABLED:true}
 
 logging:
   level:
