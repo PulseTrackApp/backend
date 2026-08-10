@@ -85,9 +85,12 @@ services:
       # variable, elle, se saisit et se chiffre dans son interface.
       PULSETRACK_FCM_CREDENTIALS_BASE64: ${PULSETRACK_FCM_CREDENTIALS_BASE64:-}
 
-      # Coolify genere le domaine et configure son proxy a partir de cette
-      # variable. Le format est SERVICE_FQDN_<SERVICE>_<PORT>.
-      SERVICE_FQDN_APP_8080: /
+      # Pas de SERVICE_FQDN_APP_8080 ici, volontairement. Cette variable magique
+      # demande a Coolify de *generer* un domaine — il en fabrique un en
+      # `sslip.io`, qui vient s'ajouter a celui saisi dans son interface. On se
+      # retrouve avec deux adresses pour un seul service, dont une que personne
+      # ne veut. Le domaine se declare une seule fois, dans le champ Domains du
+      # service `app`, et Coolify en deduit les labels Traefik.
 
     # `expose` et non `ports` : le proxy de Coolify partage le reseau du
     # compose, il n'a pas besoin que le port soit publie sur l'hote.
