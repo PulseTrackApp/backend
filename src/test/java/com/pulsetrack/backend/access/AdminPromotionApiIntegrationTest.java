@@ -41,6 +41,38 @@ class AdminPromotionApiIntegrationTest extends AbstractApiIntegrationTest {
         assertThat(users.findByEmail(ADMIN_EMAIL).orElseThrow().isAdmin()).isTrue();
     }
 
+    /**
+     * L'application desktop d'administration lit ce champ pour savoir, des la
+     * connexion, si elle a affaire a un administrateur. Sans lui, elle devrait
+     * decoder le jeton elle-meme, ou laisser entrer un compte ordinaire vers des
+     * ecrans qui repondront tous {@code 403}.
+     */
+    @Test
+    void annonce_le_role_des_la_connexion() throws Exception {
+        register(ADMIN_EMAIL);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "%s", "password": "motdepasse123"}
+                                """.formatted(ADMIN_EMAIL)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+    }
+
+    @Test
+    void annonce_un_role_ordinaire_pour_les_autres() throws Exception {
+        register("sans-privilege@pulsetrack.test");
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "sans-privilege@pulsetrack.test", "password": "motdepasse123"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("USER"));
+    }
+
     @Test
     void n_effleure_pas_les_autres_comptes() throws Exception {
         register("simple@pulsetrack.test");

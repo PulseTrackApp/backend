@@ -2,6 +2,8 @@ package com.pulsetrack.backend.user.dto;
 
 import java.util.UUID;
 
+import com.pulsetrack.backend.user.Role;
+
 /**
  * Reponse d'inscription, de connexion et de renouvellement.
  *
@@ -21,6 +23,15 @@ import java.util.UUID;
  * @param email                   email normalise
  * @param profileCompleted        {@code false} tant que le profil sportif n'est pas
  *                                renseigne : le client mobile route alors vers l'onboarding
+ * @param role                    niveau de privilege du compte. Presente ici bien
+ *                                qu'il figure deja dans le jeton d'acces : sans
+ *                                cela, l'application d'administration devrait
+ *                                decoder elle-meme le JWT pour savoir si elle a
+ *                                affaire a un administrateur, et refuser
+ *                                proprement une connexion legitime mais sans
+ *                                privilege. Le serveur reste seul juge des
+ *                                acces ; ce champ ne sert qu'a orienter
+ *                                l'interface.
  */
 public record AuthResponse(
         String accessToken,
@@ -30,5 +41,6 @@ public record AuthResponse(
         long refreshExpiresInSeconds,
         UUID userId,
         String email,
-        boolean profileCompleted) {
+        boolean profileCompleted,
+        Role role) {
 }

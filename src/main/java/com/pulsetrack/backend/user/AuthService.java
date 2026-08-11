@@ -149,7 +149,8 @@ public class AuthService {
                 refreshToken.expiresInSeconds(),
                 user.getId(),
                 user.getEmail(),
-                profileCompleted);
+                profileCompleted,
+                user.getRole());
     }
 
     /**
