@@ -111,6 +111,13 @@ pulsetrack:
     model: ${PULSETRACK_GEMINI_MODEL:gemini-3.5-flash}
     timeout: PT30S
     max-output-tokens: 900
+    # Reflexion interne du modele, prelevee sur le plafond ci-dessus. Coupee a
+    # dessein : le 11 aout 2026 elle consommait 860 jetons sur 900, et le
+    # conseil s'arretait au bout de trente-six, en plein milieu d'une phrase.
+    # Un conseil de cent cinquante mots n'a pas besoin de raisonner en chaine.
+    # Une valeur negative n'envoie pas le reglage, pour un modele qui le
+    # refuserait.
+    thinking-budget: ${PULSETRACK_GEMINI_THINKING_BUDGET:0}
     # Cle de niveau serveur, par variable d'environnement. C'est le mode
     # recommande pour un usage personnel : la cle ne quitte jamais
     # l'environnement du serveur et n'est jamais ecrite en base.

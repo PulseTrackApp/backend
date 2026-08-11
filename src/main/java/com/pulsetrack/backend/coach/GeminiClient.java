@@ -76,7 +76,7 @@ public class GeminiClient {
         GenerateContentRequest request = new GenerateContentRequest(
                 List.of(new Content(List.of(new Part(userPrompt)))),
                 new Content(List.of(new Part(systemInstruction))),
-                new GenerationConfig(TEMPERATURE, properties.maxOutputTokens()));
+                generationConfig());
 
         GenerateContentResponse response;
         try {
@@ -99,6 +99,26 @@ public class GeminiClient {
         }
 
         return extractText(response);
+    }
+
+    /**
+     * Reglages d'inference.
+     *
+     * <p>Le budget de reflexion se preleve sur le plafond de sortie. Laisse
+     * libre, il l'epuisait presque entierement — 860 jetons sur 900 le 11 aout
+     * 2026 — et la reponse etait tronquee en plein milieu d'une phrase. Un
+     * conseil de cent cinquante mots n'a pas besoin de reflexion en chaine :
+     * la couper rend le plafond a ce qui est reellement affiche.
+     *
+     * <p>Omis quand le reglage est negatif, pour un modele futur qui le
+     * refuserait. Jackson ne serialise pas les champs nuls, la clef disparait
+     * alors du corps envoye.
+     */
+    GenerationConfig generationConfig() {
+        ThinkingConfig thinking = properties.sendsThinkingBudget()
+                ? new ThinkingConfig(properties.thinkingBudget())
+                : null;
+        return new GenerationConfig(TEMPERATURE, properties.maxOutputTokens(), thinking);
     }
 
     /**
@@ -167,7 +187,10 @@ public class GeminiClient {
     record Part(String text) {
     }
 
-    record GenerationConfig(double temperature, int maxOutputTokens) {
+    record GenerationConfig(double temperature, int maxOutputTokens, ThinkingConfig thinkingConfig) {
+    }
+
+    record ThinkingConfig(int thinkingBudget) {
     }
 
     record GenerateContentResponse(List<Candidate> candidates) {
