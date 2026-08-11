@@ -39,6 +39,13 @@ public class WorkoutMetricsCalculator {
      */
     private static final double MIN_ELEVATION_DELTA_METERS = 1.0;
 
+    /**
+     * Precision supposee quand le telephone n'en annonce aucune. Volontairement
+     * prudente : sous-estimer le bruit ferait passer pour un pic de vitesse ce
+     * qui n'est qu'un point mal localise.
+     */
+    private static final double DEFAULT_ACCURACY_METERS = 10.0;
+
     private static final double SECONDS_PER_HOUR = 3_600d;
     private static final double METERS_PER_KM = 1_000d;
 
@@ -209,7 +216,19 @@ public class WorkoutMetricsCalculator {
                 if (segmentSpeedMps >= MOVING_SPEED_THRESHOLD_MPS) {
                     track.movingSeconds += segmentSeconds;
                 }
-                track.maxSpeedMps = Math.max(track.maxSpeedMps, segmentSpeedMps);
+                // Le pic de vitesse ignore les segments dont le deplacement tient
+                // dans l'incertitude du GPS. Sans ce garde-fou, un seul point mal
+                // localise suffit : une marche du 11 aout 2026 affichait 23,5 km/h
+                // alors que le capteur du telephone n'avait jamais depasse
+                // 6,2 km/h — un point a 22,8 metres de precision avait produit un
+                // saut de vingt metres en trois secondes.
+                //
+                // La distance, elle, continue de cumuler ces segments : les
+                // ecarts s'y compensent sur la duree, alors qu'un maximum retient
+                // le pire d'entre eux pour toujours.
+                if (segmentMeters > noiseFloorMeters(previous, current)) {
+                    track.maxSpeedMps = Math.max(track.maxSpeedMps, segmentSpeedMps);
+                }
             }
 
             // Vitesse annoncee par le capteur, quand le telephone la fournit.
@@ -225,6 +244,22 @@ public class WorkoutMetricsCalculator {
             }
         }
         return track;
+    }
+
+    /**
+     * Deplacement en deca duquel un segment n'est pas distinguable du bruit du
+     * GPS.
+     *
+     * <p>Retient la moins bonne des deux precisions annoncees : un segment ne
+     * vaut pas mieux que son point le plus incertain. Quand le telephone ne
+     * renseigne rien, on retombe sur une valeur prudente plutot que sur zero,
+     * qui laisserait passer n'importe quel saut.
+     */
+    private double noiseFloorMeters(GpsPointRequest previous, GpsPointRequest current) {
+        double worst = Math.max(
+                previous.accuracy() == null ? DEFAULT_ACCURACY_METERS : previous.accuracy(),
+                current.accuracy() == null ? DEFAULT_ACCURACY_METERS : current.accuracy());
+        return Math.max(worst, 0d);
     }
 
     /**

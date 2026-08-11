@@ -23,6 +23,12 @@ class WorkoutMetricsCalculatorTest {
     /** Ecart de latitude correspondant a environ 1000 m vers le nord. */
     private static final double ONE_KM_IN_DEGREES_LAT = 0.0089931;
 
+    /** Un metre, en degres, aux abords de Paris. */
+    private static final double METER_IN_DEGREES_LAT = ONE_KM_IN_DEGREES_LAT / 1000;
+
+    /** A cette latitude, un degre de longitude couvre environ 73,3 km. */
+    private static final double METER_IN_DEGREES_LON = 1 / 73_300d;
+
     private static final double WEIGHT_KG = 70.0;
 
     private final WorkoutMetricsCalculator calculator = new WorkoutMetricsCalculator();
@@ -139,5 +145,67 @@ class WorkoutMetricsCalculatorTest {
 
     private GpsPointRequest point(double latitude, double longitude, Double altitude, Instant recordedAt) {
         return new GpsPointRequest(latitude, longitude, altitude, null, null, recordedAt);
+    }
+
+    /**
+     * Cas reel du 11 aout 2026 : une marche de trente minutes affichait un pic a
+     * 23,5 km/h alors que le capteur du telephone n'avait jamais depasse
+     * 6,2 km/h. Un seul point a 22,8 metres de precision avait produit un saut
+     * lateral d'une vingtaine de metres en trois secondes.
+     *
+     * <p>Un maximum retient le pire echantillon pour toujours, contrairement a
+     * une moyenne ou les ecarts se compensent : c'est la mesure la plus fragile
+     * au bruit, et celle qu'on affiche le plus volontiers.
+     */
+    @Test
+    void ignore_un_saut_gps_dans_le_pic_de_vitesse() {
+        Instant instant = START;
+        double latitude = PARIS_LAT;
+        var track = new java.util.ArrayList<GpsPointRequest>();
+
+        // Marche reguliere : 4,2 m toutes les 3 s, soit environ 5 km/h.
+        for (int i = 0; i < 200; i++) {
+            boolean jitter = i == 100;
+            track.add(new GpsPointRequest(
+                    latitude,
+                    // Le point aberrant est decale de vingt metres sur le cote,
+                    // et s'annonce lui-meme tres imprecis.
+                    jitter ? PARIS_LON + METER_IN_DEGREES_LON * 20 : PARIS_LON,
+                    null,
+                    jitter ? 23.0 : 4.0,
+                    null,
+                    instant));
+            latitude += METER_IN_DEGREES_LAT * 4.2;
+            instant = instant.plusSeconds(3);
+        }
+
+        WorkoutMetrics metrics = calculator.calculate(
+                SportType.WALK, START, START.plusSeconds(600), track, null, WEIGHT_KG);
+
+        // Sans le garde-fou, le saut donnait plus de 24 km/h.
+        assertThat(metrics.maxSpeedKmh())
+                .as("pic de vitesse d'une marche")
+                .isLessThan(8d)
+                .isGreaterThan(4d);
+    }
+
+    /**
+     * Le pendant du test precedent : une acceleration franche mais reelle, bien
+     * au-dela de l'incertitude annoncee, doit continuer d'etre retenue. Un
+     * garde-fou qui ecraserait aussi les vrais pics ne vaudrait pas mieux que le
+     * defaut qu'il corrige.
+     */
+    @Test
+    void retient_une_acceleration_reelle() {
+        List<GpsPointRequest> track = List.of(
+                new GpsPointRequest(PARIS_LAT, PARIS_LON, null, 4.0, null, START),
+                // 30 m en 3 s : 36 km/h, largement au-dessus des 4 m d'incertitude.
+                new GpsPointRequest(PARIS_LAT + METER_IN_DEGREES_LAT * 30, PARIS_LON, null, 4.0, null,
+                        START.plusSeconds(3)));
+
+        WorkoutMetrics metrics = calculator.calculate(
+                SportType.RIDE, START, START.plusSeconds(3), track, null, WEIGHT_KG);
+
+        assertThat(metrics.maxSpeedKmh()).isGreaterThan(30d);
     }
 }
