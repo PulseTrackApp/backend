@@ -17,7 +17,7 @@ import com.pulsetrack.backend.coach.CoachingTone;
  *                           quelle qu'en soit la source ; c'est ce champ que
  *                           l'interface teste avant de proposer un conseil
  */
-public record GeminiSettingsResponse(
+public record CoachSettingsResponse(
         boolean enabled,
         boolean apiKeyStored,
         boolean serverKeyAvailable,

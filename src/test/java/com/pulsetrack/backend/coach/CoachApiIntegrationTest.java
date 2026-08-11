@@ -146,10 +146,37 @@ class CoachApiIntegrationTest extends AbstractApiIntegrationTest {
         mockMvc.perform(post("/api/v1/me/coach/weekly-review").header("Authorization", token))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.detail").value(
-                        "L'assistant Gemini n'est pas configure. Ajoutez votre cle API dans les parametres."));
+                        "L'assistant n'est pas configure. Ajoutez votre cle API dans les parametres."));
 
         // Et surtout : aucun appel n'a ete tente.
         verify(geminiClient, never()).generate(anyString(), anyString(), anyString());
+    }
+
+    /**
+     * Regle produit : rien de ce qui sort du serveur ne doit reveler quel
+     * fournisseur alimente l'assistant. Ce test verrouille la regle sur le
+     * chemin d'erreur le plus expose — celui qu'un utilisateur declenche en
+     * essayant la fonctionnalite sans l'avoir configuree.
+     *
+     * <p>Le nom reste dans les journaux du serveur, ou il est utile a
+     * l'exploitation et invisible aux clients.
+     */
+    @Test
+    void ne_nomme_jamais_le_fournisseur_dans_une_reponse() throws Exception {
+        String token = registerUser();
+        saveProfile(token, 72.0);
+
+        String body = mockMvc.perform(post("/api/v1/me/coach/ask")
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"question": "Comment progresser en endurance ?"}
+                                """))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(body).doesNotContainIgnoringCase("gemini");
     }
 
     @Test

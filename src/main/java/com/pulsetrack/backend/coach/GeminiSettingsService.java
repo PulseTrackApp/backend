@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.pulsetrack.backend.coach.dto.GeminiSettingsRequest;
-import com.pulsetrack.backend.coach.dto.GeminiSettingsResponse;
+import com.pulsetrack.backend.coach.dto.CoachSettingsRequest;
+import com.pulsetrack.backend.coach.dto.CoachSettingsResponse;
 
 import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.stereotype.Service;
@@ -40,12 +40,12 @@ public class GeminiSettingsService {
      * jamais l'assistant n'a pas besoin d'une ligne dediee.
      */
     @Transactional
-    public GeminiSettingsResponse getOrCreate(UUID userId) {
+    public CoachSettingsResponse getOrCreate(UUID userId) {
         return toResponse(loadOrCreate(userId));
     }
 
     @Transactional
-    public GeminiSettingsResponse updatePreferences(UUID userId, GeminiSettingsRequest request) {
+    public CoachSettingsResponse updatePreferences(UUID userId, CoachSettingsRequest request) {
         GeminiSettings current = loadOrCreate(userId);
         current.updatePreferences(
                 request.enabled(),
@@ -62,7 +62,7 @@ public class GeminiSettingsService {
      * s'en servir.
      */
     @Transactional
-    public GeminiSettingsResponse storeApiKey(UUID userId, String apiKey) {
+    public CoachSettingsResponse storeApiKey(UUID userId, String apiKey) {
         GeminiSettings current = loadOrCreate(userId);
         Instant now = Instant.now();
         current.storeApiKey(encryptor.encrypt(apiKey.trim()), now);
@@ -72,7 +72,7 @@ public class GeminiSettingsService {
     }
 
     @Transactional
-    public GeminiSettingsResponse deleteApiKey(UUID userId) {
+    public CoachSettingsResponse deleteApiKey(UUID userId) {
         GeminiSettings current = loadOrCreate(userId);
         current.clearApiKey(Instant.now());
         return toResponse(current);
@@ -136,9 +136,9 @@ public class GeminiSettingsService {
                 });
     }
 
-    private GeminiSettingsResponse toResponse(GeminiSettings source) {
+    private CoachSettingsResponse toResponse(GeminiSettings source) {
         boolean keyAvailable = source.hasApiKey() || properties.hasServerKey();
-        return new GeminiSettingsResponse(
+        return new CoachSettingsResponse(
                 source.isEnabled(),
                 source.hasApiKey(),
                 properties.hasServerKey(),

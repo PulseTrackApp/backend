@@ -7,8 +7,8 @@ import java.time.ZoneOffset;
 import com.pulsetrack.backend.coach.dto.ApiKeyRequest;
 import com.pulsetrack.backend.coach.dto.CoachMessageResponse;
 import com.pulsetrack.backend.coach.dto.CoachQuestionRequest;
-import com.pulsetrack.backend.coach.dto.GeminiSettingsRequest;
-import com.pulsetrack.backend.coach.dto.GeminiSettingsResponse;
+import com.pulsetrack.backend.coach.dto.CoachSettingsRequest;
+import com.pulsetrack.backend.coach.dto.CoachSettingsResponse;
 import com.pulsetrack.backend.common.security.AuthenticatedUser;
 
 import jakarta.validation.Valid;
@@ -43,13 +43,13 @@ public class CoachController {
     }
 
     @GetMapping("/settings")
-    public GeminiSettingsResponse settings(@AuthenticationPrincipal Jwt jwt) {
+    public CoachSettingsResponse settings(@AuthenticationPrincipal Jwt jwt) {
         return settingsService.getOrCreate(AuthenticatedUser.idOf(jwt));
     }
 
     @PutMapping("/settings")
-    public GeminiSettingsResponse updateSettings(@AuthenticationPrincipal Jwt jwt,
-                                                 @Valid @RequestBody GeminiSettingsRequest request) {
+    public CoachSettingsResponse updateSettings(@AuthenticationPrincipal Jwt jwt,
+                                                 @Valid @RequestBody CoachSettingsRequest request) {
         return settingsService.updatePreferences(AuthenticatedUser.idOf(jwt), request);
     }
 
@@ -61,13 +61,13 @@ public class CoachController {
      * La reponse confirme l'enregistrement sans jamais renvoyer la cle.
      */
     @PutMapping("/settings/api-key")
-    public GeminiSettingsResponse storeApiKey(@AuthenticationPrincipal Jwt jwt,
+    public CoachSettingsResponse storeApiKey(@AuthenticationPrincipal Jwt jwt,
                                               @Valid @RequestBody ApiKeyRequest request) {
         return settingsService.storeApiKey(AuthenticatedUser.idOf(jwt), request.apiKey());
     }
 
     @DeleteMapping("/settings/api-key")
-    public GeminiSettingsResponse deleteApiKey(@AuthenticationPrincipal Jwt jwt) {
+    public CoachSettingsResponse deleteApiKey(@AuthenticationPrincipal Jwt jwt) {
         return settingsService.deleteApiKey(AuthenticatedUser.idOf(jwt));
     }
 

@@ -26,7 +26,9 @@ public enum AppModule {
     GOALS("Objectifs", "/api/v1/me/goals"),
     STATS("Statistiques", "/api/v1/me/stats"),
     WEEKLY_SUMMARY("Bilan hebdomadaire", "/api/v1/me/weekly-summary"),
-    COACH("Coach Gemini", "/api/v1/me/coach"),
+    // Le fournisseur n'est nomme nulle part dans ce qui sort du serveur, y
+    // compris dans le catalogue d'administration : c'est un choix de produit.
+    COACH("Assistant de coaching", "/api/v1/me/coach"),
     EXPORT("Export des donnees personnelles", "/api/v1/me/export"),
     PUSH("Notifications push", "/api/v1/me/device-tokens");
 

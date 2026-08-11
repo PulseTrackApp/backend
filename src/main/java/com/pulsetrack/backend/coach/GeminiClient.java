@@ -95,24 +95,32 @@ public class GeminiClient {
         } catch (ResourceAccessException ex) {
             // Timeout ou reseau coupe : l'utilisateur doit savoir que ce n'est
             // pas sa faute et qu'il peut reessayer.
-            throw new ExternalServiceException("Gemini n'a pas repondu dans le delai imparti.", ex);
+            throw new ExternalServiceException("L'assistant n'a pas repondu dans le delai imparti.", ex);
         }
 
         return extractText(response);
     }
 
+    /**
+     * Traduit l'echec du fournisseur en erreur presentable.
+     *
+     * <p>Aucun de ces messages ne nomme le fournisseur, et c'est delibere : rien
+     * de ce que voit un client ne doit reveler quel service alimente l'assistant.
+     * Le nom reste dans les journaux du serveur, ou il est utile a qui exploite
+     * l'application et invisible a tous les autres.
+     */
     private RuntimeException translate(HttpStatusCode status) {
         if (status.value() == 401 || status.value() == 403) {
             return new BusinessRuleException(
-                    "Votre cle API Gemini a ete refusee. Verifiez-la dans les parametres.");
+                    "Votre cle API a ete refusee. Verifiez-la dans les parametres.");
         }
         if (status.value() == 429) {
             return new RateLimitedException(
-                    "Le quota de votre cle Gemini est atteint. Reessayez plus tard.");
+                    "Le quota de votre cle est atteint. Reessayez plus tard.");
         }
         // Le detail technique reste dans les journaux, pas dans la reponse.
         log.warn("Reponse en erreur de Gemini : statut {}", status.value());
-        return new ExternalServiceException("Gemini a repondu par une erreur.");
+        return new ExternalServiceException("L'assistant a repondu par une erreur.");
     }
 
     /**
@@ -122,13 +130,13 @@ public class GeminiClient {
      */
     private String extractText(GenerateContentResponse response) {
         if (response == null || response.candidates() == null || response.candidates().isEmpty()) {
-            throw new ExternalServiceException("Gemini n'a produit aucune reponse exploitable.");
+            throw new ExternalServiceException("L'assistant n'a produit aucune reponse exploitable.");
         }
 
         Candidate candidate = response.candidates().get(0);
         if (candidate.content() == null || candidate.content().parts() == null
                 || candidate.content().parts().isEmpty()) {
-            throw new ExternalServiceException("Gemini n'a produit aucune reponse exploitable.");
+            throw new ExternalServiceException("L'assistant n'a produit aucune reponse exploitable.");
         }
 
         String text = candidate.content().parts().stream()
@@ -138,7 +146,7 @@ public class GeminiClient {
                 .orElse("");
 
         if (text.isBlank()) {
-            throw new ExternalServiceException("Gemini n'a produit aucune reponse exploitable.");
+            throw new ExternalServiceException("L'assistant n'a produit aucune reponse exploitable.");
         }
         return text.trim();
     }

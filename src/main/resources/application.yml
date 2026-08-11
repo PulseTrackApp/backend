@@ -102,9 +102,13 @@ pulsetrack:
 
   gemini:
     base-url: 'https://generativelanguage.googleapis.com'
-    # Configurable a dessein : les noms de modeles evoluent vite, et un
-    # renommage cote Google ne doit pas imposer de recompiler.
-    model: 'gemini-2.5-flash'
+    # Surchargeable par variable d'environnement, et pas seulement par fichier.
+    # Le 11 aout 2026, `gemini-2.5-flash` a cesse d'etre servi aux nouvelles
+    # cles — « no longer available to new users » — et l'assistant repondait 502
+    # a chaque appel. Sans cette variable, remettre le service en marche
+    # imposait de modifier le code, reconstruire l'image et redeployer, pour un
+    # simple nom de modele.
+    model: ${PULSETRACK_GEMINI_MODEL:gemini-3.5-flash}
     timeout: PT30S
     max-output-tokens: 900
     # Cle de niveau serveur, par variable d'environnement. C'est le mode
