@@ -31,8 +31,15 @@ import jakarta.persistence.Table;
 @Table(name = "workout_sessions")
 public class WorkoutSession {
 
+    /**
+     * Identifiant assigne par l'application, jamais par la base.
+     *
+     * <p>C'est ce qui rend l'enregistrement d'une seance rejouable : le mobile
+     * choisit l'identifiant avant l'envoi, et un renvoi apres coupure reseau
+     * retombe sur la seance deja enregistree au lieu d'en creer une seconde.
+     * C'etait l'intention d'origine du schema, restee inappliquee.
+     */
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     /** Proprietaire de la seance. Toute lecture filtre dessus. */
@@ -102,7 +109,8 @@ public class WorkoutSession {
     protected WorkoutSession() {
     }
 
-    public WorkoutSession(UUID userId,
+    public WorkoutSession(UUID id,
+                          UUID userId,
                           SportType sportType,
                           Instant startedAt,
                           Instant endedAt,
@@ -111,6 +119,7 @@ public class WorkoutSession {
                           Feeling feeling,
                           String note,
                           Instant createdAt) {
+        this.id = id;
         this.userId = userId;
         this.sportType = sportType;
         this.startedAt = startedAt;

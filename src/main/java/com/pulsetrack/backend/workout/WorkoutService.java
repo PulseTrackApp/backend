@@ -3,10 +3,12 @@ package com.pulsetrack.backend.workout;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.pulsetrack.backend.common.domain.SportType;
 import com.pulsetrack.backend.common.error.BusinessRuleException;
+import com.pulsetrack.backend.common.error.ConflictException;
 import com.pulsetrack.backend.common.error.ResourceNotFoundException;
 import com.pulsetrack.backend.profile.ProfileService;
 import com.pulsetrack.backend.workout.dto.CreateWorkoutRequest;
@@ -49,9 +51,26 @@ public class WorkoutService {
      * @throws ResourceNotFoundException si le profil (donc le poids) manque
      */
     @Transactional
-    public WorkoutResponse create(UUID userId, CreateWorkoutRequest request) {
+    public Recorded create(UUID userId, CreateWorkoutRequest request) {
         if (!request.endedAt().isAfter(request.startedAt())) {
             throw new BusinessRuleException("La fin de seance doit etre posterieure au debut.");
+        }
+
+        UUID id = request.id();
+        if (id != null) {
+            // Renvoi de la meme seance : on rend celle deja enregistree plutot
+            // que d'en creer une seconde. C'est ce qui rend l'envoi rejouable
+            // apres une coupure reseau en fin de course.
+            Optional<WorkoutSession> already = sessions.findByIdAndUserId(id, userId);
+            if (already.isPresent()) {
+                return new Recorded(toDetail(already.get()), false);
+            }
+            // Identifiant deja pris par quelqu'un d'autre : refuser proprement,
+            // sinon l'insertion viole la cle primaire et remonte en 500. Le
+            // message ne dit pas a qui il appartient.
+            if (sessions.existsById(id)) {
+                throw new ConflictException("Cet identifiant de seance est deja utilise.");
+            }
         }
 
         // Ordonner le trace avant tout calcul : rien ne garantit que le mobile
@@ -69,6 +88,7 @@ public class WorkoutService {
                 weightKg);
 
         WorkoutSession session = new WorkoutSession(
+                id != null ? id : UUID.randomUUID(),
                 userId,
                 request.sportType(),
                 request.startedAt(),
@@ -91,7 +111,19 @@ public class WorkoutService {
                     point.recordedAt());
         }
 
-        return toDetail(sessions.save(session));
+        return new Recorded(toDetail(sessions.save(session)), true);
+    }
+
+    /**
+     * Resultat d'un enregistrement de seance.
+     *
+     * @param workout seance telle qu'elle est desormais enregistree
+     * @param created {@code false} quand la seance existait deja, c'est-a-dire
+     *                quand le client a renvoye un identifiant deja connu ; le
+     *                controleur repond alors 200 plutot que 201, ce qui dit au
+     *                mobile que son envoi precedent avait bien abouti
+     */
+    public record Recorded(WorkoutResponse workout, boolean created) {
     }
 
     @Transactional(readOnly = true)

@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
 import org.hibernate.annotations.OnDelete;
@@ -25,8 +26,20 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(name = "gps_points")
 public class GpsPoint {
 
+    /**
+     * Identifiant tire d'une sequence, et non de l'identite de la colonne.
+     *
+     * <p>C'est ce qui rend l'ecriture par lots possible : avec une identite,
+     * Hibernate doit relire la cle generee apres chaque insertion et ne peut
+     * rien grouper. Un trace de trois heures coutait ainsi 10 800 allers-retours.
+     *
+     * <p>{@code allocationSize} doit rester egal au pas de la sequence declaree
+     * dans {@code V5__gps_points_sequence.sql} : un ecart entre les deux
+     * produirait des cles en double.
+     */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "gps_points_seq")
+    @SequenceGenerator(name = "gps_points_seq", sequenceName = "gps_points_seq", allocationSize = 50)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

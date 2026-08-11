@@ -14,6 +14,16 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+          # Insertions groupees par cinquante. Sans cela, enregistrer le trace
+          # d'une course longue coute un aller-retour par point : mesure a 12 s
+          # pour trois heures de course en local, davantage sur un petit
+          # serveur, au-dela du delai d'attente du client mobile.
+          batch_size: 50
+        # Indispensables au regroupement : Hibernate ecrit une seance et ses
+        # milliers de points dans la meme transaction, et sans tri il alterne
+        # les tables, ce qui interrompt chaque lot au bout d'une ligne.
+        order_inserts: true
+        order_updates: true
 
   flyway:
     enabled: true

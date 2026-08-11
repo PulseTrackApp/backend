@@ -42,12 +42,22 @@ public class WorkoutController {
         this.workoutService = workoutService;
     }
 
+    /**
+     * Enregistre une seance terminee.
+     *
+     * <p>Rejouable quand le client fournit l'identifiant : un renvoi de la meme
+     * seance repond 200 avec l'enregistrement existant, au lieu de 201 et d'un
+     * doublon. C'est indispensable des lors que le mobile suit une course en
+     * arriere-plan et televerse a la fin, quand le reseau revient.
+     */
     @PostMapping
     public ResponseEntity<WorkoutResponse> create(@AuthenticationPrincipal Jwt jwt,
                                                   @Valid @RequestBody CreateWorkoutRequest request) {
-        WorkoutResponse created = workoutService.create(AuthenticatedUser.idOf(jwt), request);
-        URI location = URI.create("/api/v1/workouts/" + created.summary().id());
-        return ResponseEntity.created(location).body(created);
+        WorkoutService.Recorded recorded = workoutService.create(AuthenticatedUser.idOf(jwt), request);
+        URI location = URI.create("/api/v1/workouts/" + recorded.workout().summary().id());
+        return recorded.created()
+                ? ResponseEntity.created(location).body(recorded.workout())
+                : ResponseEntity.ok().location(location).body(recorded.workout());
     }
 
     /**

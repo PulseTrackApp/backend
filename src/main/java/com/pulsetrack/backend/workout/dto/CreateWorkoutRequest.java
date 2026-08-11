@@ -2,6 +2,7 @@ package com.pulsetrack.backend.workout.dto;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import com.pulsetrack.backend.common.domain.SportType;
 import com.pulsetrack.backend.workout.Feeling;
@@ -20,11 +21,18 @@ import jakarta.validation.constraints.Size;
  * le trace et son ressenti. Distance, allure, vitesses, denivele et calories sont
  * calcules par le serveur et ne sont pas acceptes en entree.
  *
+ * @param id             identifiant choisi par le client, facultatif mais
+ *                       recommande : renvoyer deux fois la meme seance avec le
+ *                       meme identifiant ne cree pas de doublon. Sans lui, une
+ *                       coupure reseau apres l'enregistrement cote serveur —
+ *                       frequente sur une heure de course — laisse le mobile
+ *                       reessayer et enregistre la seance deux fois.
  * @param distanceMeters distance declaree, prise en compte uniquement quand le
  *                       trace est absent ou trop court (seance en salle)
  * @param gpsPoints      trace du parcours ; peut etre vide ou absent
  */
 public record CreateWorkoutRequest(
+        UUID id,
         @NotNull SportType sportType,
         @NotNull Instant startedAt,
         @NotNull Instant endedAt,
