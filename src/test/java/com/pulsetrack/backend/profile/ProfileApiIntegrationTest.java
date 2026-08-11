@@ -26,11 +26,13 @@ class ProfileApiIntegrationTest extends AbstractApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.displayName").value("Nicolas"))
                 // 72,5 / 1,78^2 = 22,88 -> arrondi a 22,9
-                .andExpect(jsonPath("$.bmi").value(22.9));
+                .andExpect(jsonPath("$.bmi").value(22.9))
+                .andExpect(jsonPath("$.bmiCategory").value("NORMAL"));
 
         mockMvc.perform(get("/api/v1/me/profile").header("Authorization", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentWeightKg").value(72.5))
+                .andExpect(jsonPath("$.bmiCategory").value("NORMAL"))
                 .andExpect(jsonPath("$.preferredSports.length()").value(2));
     }
 

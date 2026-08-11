@@ -11,6 +11,8 @@ import com.pulsetrack.backend.common.error.ResourceNotFoundException;
 import com.pulsetrack.backend.goal.dto.GoalRequest;
 import com.pulsetrack.backend.goal.dto.GoalResponse;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,12 +71,32 @@ public class GoalService {
         return toResponse(goal);
     }
 
+    /**
+     * @param activeOnly {@code true} pour les seuls objectifs en cours ;
+     *                   {@code false} ajoute les archives, d'ou la pagination
+     * @return page d'objectifs, du plus recent au plus ancien
+     */
     @Transactional(readOnly = true)
-    public List<GoalResponse> list(UUID userId, boolean activeOnly) {
-        List<Goal> found = activeOnly
-                ? goals.findByUserIdAndActiveTrue(userId)
-                : goals.findByUserIdOrderByCreatedAtDesc(userId);
-        return found.stream().map(this::toResponse).toList();
+    public Page<GoalResponse> list(UUID userId, boolean activeOnly, Pageable pageable) {
+        Page<Goal> found = activeOnly
+                ? goals.findByUserIdAndActiveTrue(userId, pageable)
+                : goals.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        return found.map(this::toResponse);
+    }
+
+    /**
+     * Tous les objectifs, archives comprises, sans pagination.
+     *
+     * <p>Reserve a l'export des donnees personnelles, qui doit etre complet par
+     * definition : une page d'export ne serait pas un export. C'est aussi
+     * pourquoi il ne s'appelle pas {@code list} — l'endpoint public, lui, reste
+     * pagine.
+     */
+    @Transactional(readOnly = true)
+    public List<GoalResponse> exportAll(UUID userId) {
+        return goals.findByUserIdOrderByCreatedAtDesc(userId, Pageable.unpaged())
+                .map(this::toResponse)
+                .getContent();
     }
 
     /** Objectifs en cours, sous forme d'entites, pour le calcul de progression. */

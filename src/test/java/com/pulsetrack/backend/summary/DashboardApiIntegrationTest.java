@@ -155,11 +155,15 @@ class DashboardApiIntegrationTest extends AbstractApiIntegrationTest {
 
         mockMvc.perform(get("/api/v1/me/goals").header("Authorization", token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.page.totalElements").value(1));
 
+        // Avec les archives, la liste grossit indefiniment : c'est ce qui
+        // justifie de la paginer comme les seances et les pesees.
         mockMvc.perform(get("/api/v1/me/goals").param("activeOnly", "false").header("Authorization", token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.page.totalElements").value(2));
     }
 
     @Test

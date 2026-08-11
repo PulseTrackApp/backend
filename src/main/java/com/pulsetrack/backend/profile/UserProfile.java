@@ -6,6 +6,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
+import com.pulsetrack.backend.bodycheckin.BodyMassIndexCalculator;
 import com.pulsetrack.backend.common.domain.SportType;
 
 import jakarta.persistence.CollectionTable;
@@ -134,11 +135,7 @@ public class UserProfile {
      *         encore renseignee
      */
     public Double bodyMassIndex() {
-        if (heightCm <= 0) {
-            return null;
-        }
-        double heightMeters = heightCm / 100.0;
-        return currentWeightKg / (heightMeters * heightMeters);
+        return BodyMassIndexCalculator.calculate(currentWeightKg, heightCm);
     }
 
     public UUID getId() {

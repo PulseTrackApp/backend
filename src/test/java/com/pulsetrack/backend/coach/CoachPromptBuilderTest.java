@@ -142,7 +142,7 @@ class CoachPromptBuilderTest {
     private ProfileResponse profile() {
         return new ProfileResponse(UUID.randomUUID(), "Nicolas", 178, 78.0,
                 LocalDate.of(1995, 4, 12), 31, Sex.MALE, PrimaryGoal.IMPROVE_ENDURANCE,
-                FitnessLevel.INTERMEDIATE, Set.of(SportType.RUN), 24.6,
+                FitnessLevel.INTERMEDIATE, Set.of(SportType.RUN), 24.6, BmiCategory.NORMAL,
                 Instant.now(), Instant.now());
     }
 

@@ -10,6 +10,9 @@ import com.pulsetrack.backend.goal.dto.GoalResponse;
 
 import jakarta.validation.Valid;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,13 +46,22 @@ public class GoalController {
     }
 
     /**
+     * Objectifs de l'utilisateur, page par page.
+     *
+     * <p>Pagine comme les seances et les pesees : avec {@code activeOnly=false}
+     * la liste contient les archives, et grossit d'un objectif par semaine et
+     * par type. Le defaut de vingt suffit largement a l'ecran des objectifs en
+     * cours, dont le nombre est borne par celui des types.
+     *
      * @param activeOnly {@code true} par defaut ; passer {@code false} pour voir
      *                   aussi les objectifs archives
      */
     @GetMapping
-    public List<GoalResponse> list(@AuthenticationPrincipal Jwt jwt,
-                                   @RequestParam(defaultValue = "true") boolean activeOnly) {
-        return goalService.list(AuthenticatedUser.idOf(jwt), activeOnly);
+    public Page<GoalResponse> list(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "true") boolean activeOnly,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return goalService.list(AuthenticatedUser.idOf(jwt), activeOnly, pageable);
     }
 
     @PostMapping

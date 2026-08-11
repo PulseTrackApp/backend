@@ -147,7 +147,10 @@ class WorkoutApiIntegrationTest extends AbstractApiIntegrationTest {
         mockMvc.perform(get("/api/v1/workouts").header("Authorization", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
-                .andExpect(jsonPath("$.totalElements").value(1));
+                // Les metadonnees vivent sous `page` depuis le passage a
+                // PagedModel : leur place a la racine dependait de la forme
+                // interne de PageImpl, que Spring Data ne garantit pas.
+                .andExpect(jsonPath("$.page.totalElements").value(1));
 
         mockMvc.perform(get("/api/v1/workouts").param("sport", "RIDE").header("Authorization", token))
                 .andExpect(status().isOk())
@@ -186,7 +189,7 @@ class WorkoutApiIntegrationTest extends AbstractApiIntegrationTest {
         // Et l'historique de Bob reste vide.
         mockMvc.perform(get("/api/v1/workouts").header("Authorization", bob))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(0));
+                .andExpect(jsonPath("$.page.totalElements").value(0));
     }
 
     @Test

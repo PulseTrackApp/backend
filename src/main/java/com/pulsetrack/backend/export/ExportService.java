@@ -68,7 +68,7 @@ public class ExportService {
                 profileService.findByUserId(userId).orElse(null),
                 workoutService.exportAll(userId),
                 allCheckIns,
-                goalService.list(userId, false),
+                goalService.exportAll(userId),
                 coachService.exportAll(userId));
     }
 }

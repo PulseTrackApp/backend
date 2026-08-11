@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.pulsetrack.backend.bodycheckin.BodyMassIndexCalculator;
 import com.pulsetrack.backend.common.domain.SportType;
 import com.pulsetrack.backend.common.error.ResourceNotFoundException;
 import com.pulsetrack.backend.profile.dto.ProfileRequest;
@@ -125,7 +126,8 @@ public class ProfileService {
                 profile.getPrimaryGoal(),
                 profile.getFitnessLevel(),
                 sports,
-                bmi == null ? null : Math.round(bmi * 10.0) / 10.0,
+                bmi,
+                BodyMassIndexCalculator.category(bmi),
                 profile.getCreatedAt(),
                 profile.getUpdatedAt());
     }

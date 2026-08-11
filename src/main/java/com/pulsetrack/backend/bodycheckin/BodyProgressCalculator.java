@@ -163,15 +163,11 @@ public class BodyProgressCalculator {
      * @return {@code null} tant que la taille est inconnue
      */
     public Double bmi(double weightKg, Integer heightCm) {
-        if (heightCm == null || heightCm <= 0) {
-            return null;
-        }
-        double heightMeters = heightCm / 100.0;
-        return round(weightKg / (heightMeters * heightMeters), 1);
+        return BodyMassIndexCalculator.calculate(weightKg, heightCm);
     }
 
     private BmiCategory category(Double bmi) {
-        return bmi == null ? null : BmiCategory.of(bmi);
+        return BodyMassIndexCalculator.category(bmi);
     }
 
     private double round(double value, int decimals) {
