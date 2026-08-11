@@ -30,7 +30,7 @@ class ModuleAccessServiceTest {
     private final MutableClock clock = new MutableClock(Instant.parse("2026-08-11T10:00:00Z"));
     private final ModuleAccessService service = new ModuleAccessService(
             repository,
-            new AccessProperties("", EnumSet.of(AppModule.WORKOUTS, AppModule.STATS), CACHE_TTL),
+            new AccessProperties("", "", EnumSet.of(AppModule.WORKOUTS, AppModule.STATS), CACHE_TTL),
             clock);
 
     @Test

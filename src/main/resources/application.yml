@@ -139,6 +139,18 @@ pulsetrack:
     # l'inscription sinon. Vide, aucune promotion n'a lieu et l'espace
     # d'administration reste inaccessible a tout le monde.
     admin-email: ${PULSETRACK_ADMIN_EMAIL:}
+    # Mot de passe d'amorçage. Renseigne, le compte administrateur est cree au
+    # demarrage s'il n'existe pas encore : plus besoin de s'inscrire avant de
+    # pouvoir ouvrir l'application d'administration.
+    #
+    # Il ne sert QU'A LA CREATION. Un compte deja present n'est jamais reecrit,
+    # sinon chaque redeploiement effacerait un mot de passe change depuis
+    # l'application.
+    #
+    # A RETIRER apres la premiere connexion : une valeur posee ici se lit en
+    # clair dans le tableau de bord de la plateforme et survit dans l'historique
+    # de configuration.
+    admin-password: ${PULSETRACK_ADMIN_PASSWORD:}
     # Modules ouverts a toute nouvelle inscription : le socle qui rend
     # l'application mobile utilisable seule — enregistrer ses seances, se peser,
     # se fixer des objectifs et recevoir ses rappels.

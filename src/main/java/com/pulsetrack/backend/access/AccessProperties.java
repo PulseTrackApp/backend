@@ -15,6 +15,17 @@ import org.springframework.validation.annotation.Validated;
  *                       personne ne peut appeler {@code /api/v1/admin/**} et
  *                       l'application d'administration est inutilisable des son
  *                       premier ecran. Laisse vide, aucune promotion n'a lieu.
+ * @param adminPassword  mot de passe d'amorçage. Renseigne, le compte
+ *                       administrateur est cree au demarrage s'il n'existe pas
+ *                       encore, ce qui evite d'avoir a s'inscrire avant de
+ *                       pouvoir ouvrir l'application d'administration.
+ *                       <p>Il ne sert qu'a la creation : un compte deja present
+ *                       n'est jamais reecrit, sinon chaque redeploiement
+ *                       ecraserait un mot de passe change depuis l'application.
+ *                       <p>A retirer une fois la premiere connexion faite : une
+ *                       valeur posee la se lit en clair dans le tableau de bord
+ *                       de la plateforme et survit dans l'historique de
+ *                       configuration.
  * @param defaultModules socle ouvert a toute nouvelle inscription. Les modules
  *                       absents de cette liste ne s'obtiennent que par un geste
  *                       de l'administrateur — c'est la le levier du produit.
@@ -25,8 +36,16 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "pulsetrack.access")
 @Validated
 public record AccessProperties(String adminEmail,
+                               String adminPassword,
                                @NotNull Set<AppModule> defaultModules,
                                @NotNull Duration cacheTtl) {
+
+    /**
+     * Longueur minimale, alignee sur celle exigee a l'inscription. Un compte
+     * d'administration ne doit pas etre plus facile a deviner que celui d'un
+     * utilisateur ordinaire.
+     */
+    public static final int MIN_PASSWORD_LENGTH = 8;
 
     /**
      * @return {@code true} si un compte administrateur est configure. Une chaine
@@ -35,5 +54,13 @@ public record AccessProperties(String adminEmail,
      */
     public boolean hasAdminEmail() {
         return adminEmail != null && !adminEmail.isBlank();
+    }
+
+    public boolean hasAdminPassword() {
+        return adminPassword != null && !adminPassword.isBlank();
+    }
+
+    public boolean adminPasswordIsLongEnough() {
+        return hasAdminPassword() && adminPassword.length() >= MIN_PASSWORD_LENGTH;
     }
 }
