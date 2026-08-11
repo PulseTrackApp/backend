@@ -28,9 +28,20 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 public record SecurityProperties(@NotNull @Valid Jwt jwt,
                                  @NotNull @Valid RefreshToken refreshToken,
+                                 @NotNull @Valid PasswordReset passwordReset,
                                  @NotNull @Valid RateLimit rateLimit,
                                  @NotNull @Valid Cors cors,
                                  @NotNull @Valid Encryption encryption) {
+
+    /**
+     * Code de reinitialisation de mot de passe.
+     *
+     * @param ttl duree de validite. Courte a dessein : le code voyage par
+     *            courriel, un canal qu'on ne maitrise pas et dont l'historique
+     *            reste consultable longtemps.
+     */
+    public record PasswordReset(@NotNull Duration ttl) {
+    }
 
     /**
      * @param secret         cle HMAC ; 32 caracteres minimum, impose par HS256
@@ -62,10 +73,16 @@ public record SecurityProperties(@NotNull @Valid Jwt jwt,
      * passe que la machine peut en verifier, et {@code /auth/register} permet de
      * remplir la base de comptes fantomes.
      *
-     * @param login    tentatives de connexion
-     * @param register creations de compte
+     * @param login         tentatives de connexion
+     * @param register      creations de compte
+     * @param passwordReset demandes de code et essais de code. Sans plafond,
+     *                      l'endpoint devient un moyen d'inonder de courriels
+     *                      une adresse choisie, et le code a huit caracteres
+     *                      finit par ceder a une recherche exhaustive.
      */
-    public record RateLimit(@NotNull @Valid Policy login, @NotNull @Valid Policy register) {
+    public record RateLimit(@NotNull @Valid Policy login,
+                            @NotNull @Valid Policy register,
+                            @NotNull @Valid Policy passwordReset) {
 
         /**
          * @param maxAttempts tentatives tolerees par fenetre

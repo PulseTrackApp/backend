@@ -144,7 +144,7 @@ class AuthApiIntegrationTest extends AbstractApiIntegrationTest {
     void n_ouvre_pas_les_chemins_inconnus_sous_le_prefixe_d_authentification() throws Exception {
         // Avec le joker, cette requete arrivait jusqu'au routage et repondait
         // 404 — ce qui revenait a annoncer que le chemin n'existe pas encore.
-        mockMvc.perform(post("/api/v1/auth/reset-password")
+        mockMvc.perform(post("/api/v1/auth/change-email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isUnauthorized());

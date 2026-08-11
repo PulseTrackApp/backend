@@ -31,10 +31,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AbstractApiIntegrationTest.NO_DOCKER_COMPOSE,
         AbstractApiIntegrationTest.NO_REMINDERS,
         AbstractApiIntegrationTest.NO_LOGIN_QUOTA,
-        AbstractApiIntegrationTest.NO_REGISTER_QUOTA
+        AbstractApiIntegrationTest.NO_REGISTER_QUOTA,
+        AbstractApiIntegrationTest.NO_PASSWORD_RESET_QUOTA
 })
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestMailConfiguration.class})
 public abstract class AbstractApiIntegrationTest {
 
     /** La base des tests vient de Testcontainers, pas de {@code compose.yaml}. */
@@ -57,6 +58,10 @@ public abstract class AbstractApiIntegrationTest {
 
     /** Voir {@link #NO_LOGIN_QUOTA}. */
     public static final String NO_REGISTER_QUOTA = "pulsetrack.security.rate-limit.register.max-attempts=100000";
+
+    /** Voir {@link #NO_LOGIN_QUOTA}. */
+    public static final String NO_PASSWORD_RESET_QUOTA =
+            "pulsetrack.security.rate-limit.password-reset.max-attempts=100000";
 
     @Autowired
     protected MockMvc mockMvc;

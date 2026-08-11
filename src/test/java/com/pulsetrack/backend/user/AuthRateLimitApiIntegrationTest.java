@@ -37,7 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "pulsetrack.security.rate-limit.login.max-attempts=3",
         "pulsetrack.security.rate-limit.login.window=PT5M",
         "pulsetrack.security.rate-limit.register.max-attempts=2",
-        "pulsetrack.security.rate-limit.register.window=PT1H"
+        "pulsetrack.security.rate-limit.register.window=PT1H",
+        "pulsetrack.security.rate-limit.password-reset.max-attempts=2",
+        "pulsetrack.security.rate-limit.password-reset.window=PT15M"
 })
 class AuthRateLimitApiIntegrationTest extends AbstractApiIntegrationTest {
 
@@ -138,6 +140,52 @@ class AuthRateLimitApiIntegrationTest extends AbstractApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(credentials(email, "motdepasse123")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void refuse_les_demandes_de_reinitialisation_au_dela_du_plafond() throws Exception {
+        String cible = uniqueEmail();
+
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/forgot-password").with(fromIp("203.0.113." + (20 + attempt)))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email": "%s"}
+                                    """.formatted(cible)))
+                    .andExpect(status().isNoContent());
+        }
+
+        // Adresses differentes, meme cible : sans plafond par adresse visee, on
+        // inonderait la boite aux lettres de quelqu'un d'autre.
+        mockMvc.perform(post("/api/v1/auth/forgot-password").with(fromIp("203.0.113.29"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "%s"}
+                                """.formatted(cible)))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void refuse_les_essais_de_code_au_dela_du_plafond() throws Exception {
+        RequestPostProcessor client = fromIp("203.0.113.30");
+
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/reset-password").with(client)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"code": "ABCD234%d", "newPassword": "motdepasse123"}
+                                    """.formatted(attempt)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        // C'est ce plafond qui met hors de portee la recherche exhaustive d'un
+        // code de huit caracteres.
+        mockMvc.perform(post("/api/v1/auth/reset-password").with(client)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code": "ABCD2349", "newPassword": "motdepasse123"}
+                                """))
+                .andExpect(status().isTooManyRequests());
     }
 
     /**

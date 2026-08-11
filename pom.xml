@@ -42,6 +42,16 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
+		<!--
+			Envoi du courriel de reinitialisation de mot de passe, via le SMTP
+			de Gmail. C'est le seul canal dont dispose l'application pour
+			joindre un utilisateur : sans lui, un mot de passe oublie est
+			definitif.
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>

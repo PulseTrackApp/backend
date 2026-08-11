@@ -64,7 +64,14 @@ public class SecurityConfig {
                                 // precisement parce que le jeton d'acces a expire.
                                 // C'est la possession du jeton de renouvellement,
                                 // verifiee en base, qui authentifie l'appel.
-                                "/api/v1/auth/refresh").permitAll()
+                                "/api/v1/auth/refresh",
+                                // Ouverts par necessite : quelqu'un qui a oublie
+                                // son mot de passe ne peut par definition pas
+                                // s'authentifier. C'est la possession de la boite
+                                // aux lettres qui fait foi, et la limitation de
+                                // debit qui empeche d'en abuser.
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         // Documentation de l'API. Sans danger : le profil `prod`
                         // desactive springdoc, ces routes n'y existent donc pas.

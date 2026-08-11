@@ -100,6 +100,16 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
+     * Le detail est le meme pour un code inconnu, expire ou deja consomme : les
+     * distinguer apprendrait a un attaquant lesquels de ses essais ont existe.
+     */
+    @ExceptionHandler(InvalidResetCodeException.class)
+    ProblemDetail handleInvalidResetCode(InvalidResetCodeException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Code invalide",
+                "Ce code de reinitialisation est invalide ou a expire.", "invalid-reset-code");
+    }
+
+    /**
      * Valeur temporelle irrecevable, typiquement un fuseau horaire inconnu passe
      * en parametre de requete. C'est une faute du client, pas du serveur : sans
      * ce cas, {@code ZoneId.of("Mars/Olympus")} finirait en 500.

@@ -14,6 +14,29 @@ spring:
   jpa:
     show-sql: false
 
+  # SMTP de Gmail. Le mot de passe n'est PAS celui du compte Google mais un
+  # « mot de passe d'application », a generer dans la securite du compte apres
+  # activation de la validation en deux etapes. Il ne donne acces qu'a l'envoi
+  # de courriel et se revoque independamment.
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          # Sans ces delais, un SMTP muet retient un fil d'execution
+          # indefiniment. L'envoi etant asynchrone, seul le pool en souffre,
+          # mais il finirait par etre epuise.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
 server:
   # Derriere le proxy de Coolify, `getRemoteAddr()` renvoie sinon l'adresse du
   # proxy : toutes les requetes du monde partageraient alors un seul quota de
@@ -39,6 +62,14 @@ pulsetrack:
     encryption:
       password: ${PULSETRACK_ENCRYPTION_PASSWORD}
       salt: ${PULSETRACK_ENCRYPTION_SALT}
+
+  mail:
+    # A `false`, la reinitialisation reste acceptee mais le code part dans les
+    # journaux : utile pour eprouver le parcours avant de brancher le SMTP.
+    enabled: ${PULSETRACK_MAIL_ENABLED:false}
+    # Avec Gmail, doit correspondre au compte authentifie : le serveur reecrit
+    # ou rejette une adresse d'expedition qui ne lui appartient pas.
+    from: ${PULSETRACK_MAIL_FROM:}
 
   gemini:
     api-key: ${PULSETRACK_GEMINI_API_KEY:}

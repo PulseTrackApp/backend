@@ -26,6 +26,7 @@ class AuthRateLimiterTest {
 
     private static final int LOGIN_MAX = 3;
     private static final int REGISTER_MAX = 2;
+    private static final int RESET_MAX = 2;
     private static final Duration LOGIN_WINDOW = Duration.ofMinutes(5);
 
     private final MutableClock clock = new MutableClock(Instant.parse("2026-08-10T10:00:00Z"));
@@ -116,6 +117,41 @@ class AuthRateLimiterTest {
     }
 
     @Test
+    void bloque_les_demandes_de_reinitialisation_visant_une_meme_adresse() {
+        for (int attempt = 1; attempt <= RESET_MAX; attempt++) {
+            rateLimiter.checkPasswordResetRequest("10.0.0." + attempt, "victime@pulsetrack.test");
+        }
+
+        // Sans la cle par adresse visee, on pourrait inonder de courriels la
+        // boite de quelqu'un d'autre en changeant d'IP a chaque envoi.
+        assertThatThrownBy(() ->
+                rateLimiter.checkPasswordResetRequest("10.0.0.99", "victime@pulsetrack.test"))
+                .isInstanceOf(RateLimitedException.class);
+    }
+
+    @Test
+    void bloque_les_essais_de_code_repetes_depuis_une_meme_adresse() {
+        for (int attempt = 1; attempt <= RESET_MAX; attempt++) {
+            rateLimiter.checkPasswordResetAttempt("1.2.3.4");
+        }
+
+        // C'est ce plafond qui met la recherche exhaustive du code hors de
+        // portee : il ne fait que huit caracteres.
+        assertThatThrownBy(() -> rateLimiter.checkPasswordResetAttempt("1.2.3.4"))
+                .isInstanceOf(RateLimitedException.class);
+    }
+
+    @Test
+    void separe_le_quota_de_reinitialisation_de_celui_de_connexion() {
+        for (int attempt = 1; attempt <= RESET_MAX; attempt++) {
+            rateLimiter.checkPasswordResetAttempt("1.2.3.4");
+        }
+
+        assertThatCode(() -> rateLimiter.checkLogin("1.2.3.4", "nico@pulsetrack.test"))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void separe_le_quota_d_inscription_de_celui_de_connexion() {
         for (int attempt = 1; attempt <= REGISTER_MAX; attempt++) {
             rateLimiter.checkRegister("1.2.3.4");
@@ -131,9 +167,11 @@ class AuthRateLimiterTest {
                 new SecurityProperties.Jwt("secret-de-test-suffisamment-long-0123456789",
                         "pulsetrack", Duration.ofHours(1)),
                 new SecurityProperties.RefreshToken(Duration.ofDays(30)),
+                new SecurityProperties.PasswordReset(Duration.ofMinutes(30)),
                 new SecurityProperties.RateLimit(
                         new SecurityProperties.RateLimit.Policy(LOGIN_MAX, LOGIN_WINDOW),
-                        new SecurityProperties.RateLimit.Policy(REGISTER_MAX, Duration.ofHours(1))),
+                        new SecurityProperties.RateLimit.Policy(REGISTER_MAX, Duration.ofHours(1)),
+                        new SecurityProperties.RateLimit.Policy(RESET_MAX, Duration.ofMinutes(15))),
                 new SecurityProperties.Cors(List.of("http://localhost:3000")),
                 new SecurityProperties.Encryption("mot-de-passe-de-test", "a1b2c3d4"));
     }

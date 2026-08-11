@@ -55,6 +55,17 @@ public class User {
         return passwordHash;
     }
 
+    /**
+     * Remplace le mot de passe, deja hache par l'appelant.
+     *
+     * <p>L'entite n'accepte jamais un mot de passe en clair : le hachage releve
+     * du service, qui detient l'encodeur, et une valeur en clair arrivee
+     * jusqu'ici finirait telle quelle en base.
+     */
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

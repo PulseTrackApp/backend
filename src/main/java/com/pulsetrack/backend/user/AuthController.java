@@ -2,9 +2,11 @@ package com.pulsetrack.backend.user;
 
 import com.pulsetrack.backend.common.security.AuthenticatedUser;
 import com.pulsetrack.backend.user.dto.AuthResponse;
+import com.pulsetrack.backend.user.dto.ForgotPasswordRequest;
 import com.pulsetrack.backend.user.dto.LoginRequest;
 import com.pulsetrack.backend.user.dto.RefreshRequest;
 import com.pulsetrack.backend.user.dto.RegisterRequest;
+import com.pulsetrack.backend.user.dto.ResetPasswordRequest;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
@@ -34,10 +36,14 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthRateLimiter rateLimiter;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService, AuthRateLimiter rateLimiter) {
+    public AuthController(AuthService authService,
+                          AuthRateLimiter rateLimiter,
+                          PasswordResetService passwordResetService) {
         this.authService = authService;
         this.rateLimiter = rateLimiter;
+        this.passwordResetService = passwordResetService;
     }
 
     /**
@@ -78,6 +84,38 @@ public class AuthController {
     @SecurityRequirements
     public AuthResponse refresh(@Valid @RequestBody RefreshRequest request) {
         return authService.refresh(request);
+    }
+
+    /**
+     * Demande un code de reinitialisation, envoye a l'adresse du compte.
+     *
+     * <p>Repond toujours 204, que l'adresse existe ou non : distinguer les deux
+     * cas ferait de cet endpoint un moyen commode de savoir qui possede un
+     * compte chez nous.
+     */
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirements
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+                               HttpServletRequest httpRequest) {
+        rateLimiter.checkPasswordResetRequest(clientIp(httpRequest), request.email());
+        passwordResetService.requestCode(request.email());
+    }
+
+    /**
+     * Remplace le mot de passe a l'aide du code recu.
+     *
+     * <p>Toutes les sessions ouvertes tombent au passage : qui reinitialise
+     * soupconne souvent une intrusion, et laisser vivre les sessions de
+     * l'intrus viderait le geste de son sens.
+     */
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirements
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+                              HttpServletRequest httpRequest) {
+        rateLimiter.checkPasswordResetAttempt(clientIp(httpRequest));
+        passwordResetService.resetPassword(request.code(), request.newPassword());
     }
 
     /**

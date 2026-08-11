@@ -61,6 +61,10 @@ pulsetrack:
       secret: 'dev-only-secret-change-me-0123456789-abcdefghijklmnopqrstuvwxyz'
       issuer: 'pulsetrack'
       access-token-ttl: PT24H
+    password-reset:
+      # Trente minutes : le code voyage par courriel, un canal qu'on ne maitrise
+      # pas et dont l'historique reste consultable longtemps.
+      ttl: PT30M
     refresh-token:
       # Trente jours : c'est la duree pendant laquelle le client mobile peut
       # renouveler sa session sans redemander le mot de passe. Contrairement au
@@ -78,6 +82,12 @@ pulsetrack:
         # Personne ne cree cinq comptes par heure de bonne foi.
         max-attempts: 5
         window: PT1H
+      password-reset:
+        # Vaut pour la demande de code comme pour l'essai d'un code. Etroit a
+        # dessein : c'est ce plafond qui empeche d'inonder une boite aux lettres
+        # et qui met la recherche exhaustive du code hors de portee.
+        max-attempts: 5
+        window: PT15M
     cors:
       # Origines autorisees pour un client web (Flutter web en dev).
       # L'app mobile native n'est pas soumise au CORS.
@@ -116,6 +126,13 @@ pulsetrack:
       # Meme contenu encode en base64, pour un hebergeur qui ne sait pas monter
       # de fichier. Prioritaire sur credentials-location.
       credentials-base64: ''
+
+  mail:
+    # Desactive en developpement : le code de reinitialisation part alors dans
+    # les journaux au lieu d'un courriel, ce qui permet d'eprouver tout le
+    # parcours sans serveur de messagerie.
+    enabled: false
+    from: ''
 
   reminders:
     enabled: true

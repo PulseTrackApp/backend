@@ -28,6 +28,8 @@ public class AuthRateLimiter {
     private static final String LOGIN_BY_IP = "login:ip:";
     private static final String LOGIN_BY_EMAIL = "login:email:";
     private static final String REGISTER_BY_IP = "register:ip:";
+    private static final String RESET_BY_IP = "reset:ip:";
+    private static final String RESET_BY_EMAIL = "reset:email:";
 
     private final FixedWindowRateLimiter limiter;
     private final SecurityProperties.RateLimit policies;
@@ -51,6 +53,34 @@ public class AuthRateLimiter {
      */
     public void checkRegister(String clientIp) {
         consume(REGISTER_BY_IP + clientIp, policies.register());
+    }
+
+    /**
+     * Demande d'un code de reinitialisation.
+     *
+     * <p>Plafonne par adresse visee autant que par IP : sans la premiere cle,
+     * l'endpoint permettrait d'inonder de courriels la boite de quelqu'un
+     * d'autre, chaque envoi partant d'une adresse differente.
+     *
+     * @throws RateLimitedException si l'IP ou l'adresse visee a epuise son quota
+     */
+    public void checkPasswordResetRequest(String clientIp, String email) {
+        SecurityProperties.RateLimit.Policy policy = policies.passwordReset();
+        consume(RESET_BY_IP + clientIp, policy);
+        consume(RESET_BY_EMAIL + AuthService.normalizeEmail(email), policy);
+    }
+
+    /**
+     * Essai d'un code de reinitialisation.
+     *
+     * <p>Seule l'IP est connue ici — le code ne designe personne tant qu'il
+     * n'est pas valide. C'est ce plafond qui met une recherche exhaustive hors
+     * de portee, le code ne faisant que huit caracteres.
+     *
+     * @throws RateLimitedException si l'IP a epuise son quota d'essais
+     */
+    public void checkPasswordResetAttempt(String clientIp) {
+        consume(RESET_BY_IP + clientIp, policies.passwordReset());
     }
 
     /** A appeler apres une authentification reussie. */
