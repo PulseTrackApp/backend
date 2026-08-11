@@ -6,6 +6,8 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.pulsetrack.backend.access.ModuleLockedException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -49,6 +51,22 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail handleBusinessRule(BusinessRuleException ex) {
         return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Regle metier non respectee",
                 ex.getMessage(), "business-rule");
+    }
+
+    /**
+     * Le module bloque est expose en propriete a part, et pas seulement dans le
+     * texte du message : le client doit pouvoir reagir a la fonctionnalite
+     * concernee sans analyser une phrase en francais, qui changera.
+     *
+     * <p>C'est aussi ce qui distingue ce refus d'un {@code 403} ordinaire, les
+     * deux partageant le meme code HTTP.
+     */
+    @ExceptionHandler(ModuleLockedException.class)
+    ProblemDetail handleModuleLocked(ModuleLockedException ex) {
+        ProblemDetail body = problem(HttpStatus.FORBIDDEN, "Fonctionnalite non activee",
+                ex.getMessage(), "module-locked");
+        body.setProperty("module", ex.module().name());
+        return body;
     }
 
     /**

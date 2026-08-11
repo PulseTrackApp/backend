@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
 
+import com.pulsetrack.backend.access.AccessProperties;
+import com.pulsetrack.backend.access.ModuleAccessService;
 import com.pulsetrack.backend.common.error.ConflictException;
 import com.pulsetrack.backend.common.error.InvalidRefreshTokenException;
 import com.pulsetrack.backend.profile.UserProfileRepository;
@@ -12,6 +14,8 @@ import com.pulsetrack.backend.user.dto.LoginRequest;
 import com.pulsetrack.backend.user.dto.RefreshRequest;
 import com.pulsetrack.backend.user.dto.RegisterRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,22 +27,30 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository users;
     private final UserProfileRepository profiles;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final RefreshTokenService refreshTokens;
+    private final ModuleAccessService moduleAccess;
+    private final AccessProperties accessProperties;
 
     public AuthService(UserRepository users,
                        UserProfileRepository profiles,
                        PasswordEncoder passwordEncoder,
                        TokenService tokenService,
-                       RefreshTokenService refreshTokens) {
+                       RefreshTokenService refreshTokens,
+                       ModuleAccessService moduleAccess,
+                       AccessProperties accessProperties) {
         this.users = users;
         this.profiles = profiles;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.refreshTokens = refreshTokens;
+        this.moduleAccess = moduleAccess;
+        this.accessProperties = accessProperties;
     }
 
     /**
@@ -55,7 +67,30 @@ public class AuthService {
         }
 
         User user = users.save(new User(email, passwordEncoder.encode(request.password()), Instant.now()));
+        promoteIfConfiguredAdmin(user);
+        moduleAccess.grantDefaults(user.getId());
         return toResponse(user, false);
+    }
+
+    /**
+     * Promeut le compte a l'inscription s'il porte l'adresse declaree
+     * administrateur.
+     *
+     * <p>Sans ce controle ici, la promotion ne pourrait avoir lieu qu'au
+     * demarrage, et le tout premier administrateur — dont le compte n'existe pas
+     * encore quand la variable est posee — devrait redemarrer l'application
+     * apres s'etre inscrit pour obtenir ses droits. Le cas nominal deviendrait
+     * une manipulation serveur.
+     */
+    private void promoteIfConfiguredAdmin(User user) {
+        if (!accessProperties.hasAdminEmail()) {
+            return;
+        }
+        if (!user.getEmail().equals(normalizeEmail(accessProperties.adminEmail()))) {
+            return;
+        }
+        user.changeRole(Role.ADMIN);
+        log.info("Compte {} promu administrateur a l'inscription.", user.getId());
     }
 
     /**

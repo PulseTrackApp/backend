@@ -18,6 +18,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class TokenService {
 
+    /**
+     * Nom de la revendication portant le role. Partage avec la configuration de
+     * securite, qui la convertit en autorite {@code ROLE_*} : une chaine
+     * dupliquee des deux cotes se desynchroniserait au premier renommage, et
+     * l'espace d'administration s'ouvrirait ou se fermerait sans que rien ne le
+     * signale.
+     */
+    public static final String ROLE_CLAIM = "role";
+
     private final JwtEncoder jwtEncoder;
     private final SecurityProperties properties;
 
@@ -38,6 +47,11 @@ public class TokenService {
                 .expiresAt(now.plus(properties.jwt().accessTokenTtl()))
                 .subject(user.getId().toString())
                 .claim("email", user.getEmail())
+                // Le role voyage dans le jeton, contrairement aux modules : il
+                // ne change qu'exceptionnellement, alors que les droits par
+                // module sont faits pour etre ajustes a tout moment et ne
+                // survivraient pas aux vingt-quatre heures de validite.
+                .claim(ROLE_CLAIM, user.getRole().name())
                 .build();
 
         // L'en-tete doit etre explicite : par defaut l'encodeur viserait RS256,

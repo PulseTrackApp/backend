@@ -9,6 +9,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.pulsetrack.backend.common.ratelimit.FixedWindowRateLimiter;
+import com.pulsetrack.backend.user.Role;
+import com.pulsetrack.backend.user.TokenService;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +29,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -73,6 +77,12 @@ public class SecurityConfig {
                                 "/api/v1/auth/forgot-password",
                                 "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // L'espace d'administration est ferme au niveau de la
+                        // chaine, avant tout controleur. Le poser ici plutot que
+                        // par annotation sur chaque methode garantit qu'un
+                        // endpoint ajoute demain sous /admin nait protege, sans
+                        // dependre de la vigilance de celui qui l'ecrit.
+                        .requestMatchers("/api/v1/admin/**").hasRole(Role.ADMIN.name())
                         // Documentation de l'API. Sans danger : le profil `prod`
                         // desactive springdoc, ces routes n'y existent donc pas.
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -86,8 +96,33 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(roleConverter())));
         return http.build();
+    }
+
+    /**
+     * Transforme la revendication {@code role} du jeton en autorite Spring
+     * Security.
+     *
+     * <p>Sans ce convertisseur, le support Resource Server ne lit que la
+     * revendication {@code scope} et prefixe les autorites par {@code SCOPE_} :
+     * {@code hasRole("ADMIN")} ne trouverait jamais rien et l'espace
+     * d'administration resterait ferme a tout le monde, y compris a un
+     * administrateur legitime.
+     *
+     * <p>Un jeton emis avant l'arrivee des roles ne porte pas la revendication.
+     * Il reste valable pour les routes ordinaires — sa signature est intacte —
+     * mais n'ouvre aucune porte d'administration, ce qui est le comportement
+     * souhaite : le privilege se demande, il ne se suppose pas.
+     */
+    private JwtAuthenticationConverter roleConverter() {
+        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
+        authorities.setAuthoritiesClaimName(TokenService.ROLE_CLAIM);
+        authorities.setAuthorityPrefix("ROLE_");
+
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        return converter;
     }
 
     /**

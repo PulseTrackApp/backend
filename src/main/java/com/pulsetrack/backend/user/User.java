@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -33,6 +35,15 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    /**
+     * {@link EnumType#STRING} et non {@code ORDINAL} : un ordinal fige l'ordre
+     * de declaration de l'enumeration dans la base, et inserer une valeur au
+     * milieu reattribuerait silencieusement les roles de tous les comptes.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private Role role = Role.USER;
+
     /** Requis par JPA. */
     protected User() {
     }
@@ -41,6 +52,7 @@ public class User {
         this.email = email;
         this.passwordHash = passwordHash;
         this.createdAt = createdAt;
+        this.role = Role.USER;
     }
 
     public UUID getId() {
@@ -68,5 +80,24 @@ public class User {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
+    }
+
+    /**
+     * Change le niveau de privilege.
+     *
+     * <p>Le service appelant reste responsable d'interdire qu'un administrateur
+     * se retire son propre role : l'entite ne connait pas l'auteur du geste, et
+     * ce controle-la se joue avec l'identite de l'appelant en main.
+     */
+    public void changeRole(Role newRole) {
+        this.role = newRole;
     }
 }

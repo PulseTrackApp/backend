@@ -134,6 +134,29 @@ pulsetrack:
     enabled: false
     from: ''
 
+  access:
+    # Compte promu administrateur, au demarrage s'il existe deja et a
+    # l'inscription sinon. Vide, aucune promotion n'a lieu et l'espace
+    # d'administration reste inaccessible a tout le monde.
+    admin-email: ${PULSETRACK_ADMIN_EMAIL:}
+    # Modules accordes a toute nouvelle inscription. La liste complete par
+    # defaut : le verrouillage est une restriction que l'administrateur pose
+    # sciemment, pas un parcours d'activation impose a chaque arrivant.
+    default-modules:
+      - 'WORKOUTS'
+      - 'BODY_CHECKINS'
+      - 'GOALS'
+      - 'STATS'
+      - 'WEEKLY_SUMMARY'
+      - 'COACH'
+      - 'EXPORT'
+      - 'PUSH'
+    # Compromis entre une requete par appel authentifie et le delai avant qu'un
+    # retrait de droit prenne effet. Une minute : assez court pour qu'un
+    # administrateur ne doute pas de son geste, assez long pour epargner la base
+    # sur un serveur a deux processeurs.
+    cache-ttl: PT60S
+
   reminders:
     enabled: true
     # Fuseau des rappels planifies. Mono-utilisateur : une seule valeur suffit.
