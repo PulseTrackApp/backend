@@ -94,6 +94,23 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
     @Query("select min(w.startedAt) from WorkoutSession w where w.userId = :userId")
     Instant findFirstStartedAt(@Param("userId") UUID userId);
 
+    /** Fiche d'un compte dans l'administration : depuis quand il ne s'entraine plus. */
+    @Query("select max(w.startedAt) from WorkoutSession w where w.userId = :userId")
+    Instant findLastStartedAt(@Param("userId") UUID userId);
+
+    long countByUserId(UUID userId);
+
+    /**
+     * Comptes ayant enregistre au moins une seance depuis une date, pour le
+     * tableau de bord. {@code count(distinct)} en base plutot qu'un chargement
+     * des seances suivi d'un regroupement en memoire : la difference se voit des
+     * le premier millier de lignes.
+     */
+    @Query("select count(distinct w.userId) from WorkoutSession w where w.startedAt >= :from")
+    long countActiveUsersSince(@Param("from") Instant from);
+
+    long countByStartedAtGreaterThanEqual(Instant from);
+
     /**
      * Jours distincts comportant au moins une seance, du plus recent au plus
      * ancien, pour reconstituer la serie d'activite.

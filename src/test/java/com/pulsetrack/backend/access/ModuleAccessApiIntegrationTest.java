@@ -1,6 +1,8 @@
 package com.pulsetrack.backend.access;
 
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 
 import com.pulsetrack.backend.AbstractApiIntegrationTest;
@@ -9,6 +11,7 @@ import com.pulsetrack.backend.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,7 +22,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Verrouillage par module de bout en bout : l'intercepteur est-il reellement
  * branche, et le refus sort-il au format d'erreur de l'API.
+ *
+ * <p>Socle restreint declare ici, en surcharge de celui de la classe de base :
+ * ces tests eprouvent le mecanisme, pas la composition du socle de production,
+ * qui est une decision produit destinee a bouger. Il suffit qu'un module soit
+ * dedans et un autre dehors.
  */
+@TestPropertySource(properties = "pulsetrack.access.default-modules=WORKOUTS,GOALS")
 class ModuleAccessApiIntegrationTest extends AbstractApiIntegrationTest {
 
     @Autowired
@@ -28,14 +37,47 @@ class ModuleAccessApiIntegrationTest extends AbstractApiIntegrationTest {
     @Autowired
     private UserRepository users;
 
-    @Test
-    void une_inscription_ouvre_tous_les_modules() throws Exception {
-        String token = registerAndGetToken("tous-" + UUID.randomUUID() + "@pulsetrack.test");
+    @Autowired
+    private AccessProperties accessProperties;
 
+    /**
+     * Une inscription n'ouvre que le socle. L'assertion se lit dans la
+     * configuration plutot que d'etre codee en dur : la composition du socle est
+     * un reglage produit, qui bougera sans que ce test doive etre reecrit.
+     */
+    @Test
+    void une_inscription_ouvre_le_socle_et_lui_seul() throws Exception {
+        String email = "socle-" + UUID.randomUUID() + "@pulsetrack.test";
+        String token = registerAndGetToken(email);
+
+        Set<AppModule> granted = moduleAccess.enabledFor(idOf(email), false);
+
+        assertThat(granted).isEqualTo(accessProperties.defaultModules());
         mockMvc.perform(get("/api/v1/me/modules").header("Authorization", token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.modules.length()").value(AppModule.values().length))
-                .andExpect(jsonPath("$.modules[?(@.enabled == false)]").isEmpty());
+                .andExpect(jsonPath("$.modules.length()").value(AppModule.values().length));
+    }
+
+    /**
+     * Le pendant de la regle : ce qui n'est pas dans le socle est ferme des la
+     * premiere seconde, et c'est un geste de l'administrateur qui l'ouvrira.
+     */
+    @Test
+    void un_module_hors_socle_est_ferme_des_l_inscription() throws Exception {
+        String email = "hors-socle-" + UUID.randomUUID() + "@pulsetrack.test";
+        String token = registerAndGetToken(email);
+
+        AppModule horsSocle = Arrays.stream(AppModule.values())
+                .filter(module -> !accessProperties.defaultModules().contains(module))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("le socle couvre tous les modules, ce test n'a plus d'objet"));
+
+        assertThat(moduleAccess.isEnabled(idOf(email), false, horsSocle)).isFalse();
+
+        mockMvc.perform(get("/api/v1/me/coach/settings").header("Authorization", token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("https://pulsetrack.app/problems/module-locked"))
+                .andExpect(jsonPath("$.module").value("COACH"));
     }
 
     @Test

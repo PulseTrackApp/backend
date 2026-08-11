@@ -15,9 +15,9 @@ import org.springframework.validation.annotation.Validated;
  *                       personne ne peut appeler {@code /api/v1/admin/**} et
  *                       l'application d'administration est inutilisable des son
  *                       premier ecran. Laisse vide, aucune promotion n'a lieu.
- * @param defaultModules modules accordes a toute nouvelle inscription. Tous par
- *                       defaut : le verrouillage est une restriction posee
- *                       sciemment, pas un parcours d'activation impose.
+ * @param defaultModules socle ouvert a toute nouvelle inscription. Les modules
+ *                       absents de cette liste ne s'obtiennent que par un geste
+ *                       de l'administrateur — c'est la le levier du produit.
  * @param cacheTtl       duree de vie du cache des droits. Compromis entre une
  *                       requete par appel authentifie et le delai avant qu'un
  *                       retrait de droit prenne effet.

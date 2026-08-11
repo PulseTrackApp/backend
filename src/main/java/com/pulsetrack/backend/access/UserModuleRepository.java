@@ -1,5 +1,6 @@
 package com.pulsetrack.backend.access;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -21,6 +22,25 @@ public interface UserModuleRepository extends JpaRepository<UserModule, UUID> {
     Set<AppModule> findModulesByUserId(@Param("userId") UUID userId);
 
     List<UserModule> findByUserId(UUID userId);
+
+    /**
+     * Droits de plusieurs comptes en une requete, pour la liste paginee de
+     * l'administration. Interroger compte par compte ferait vingt requetes pour
+     * une page de vingt lignes — le defaut classique du « N+1 ».
+     */
+    List<UserModule> findByUserIdIn(Collection<UUID> userIds);
+
+    /**
+     * Repartition d'usage pour le tableau de bord. Un module accorde a personne
+     * n'apparait pas dans le resultat : c'est a l'appelant de completer avec les
+     * modules absents, sans quoi le tableau aurait des trous.
+     */
+    @Query("""
+            select new com.pulsetrack.backend.access.ModuleUsageRow(m.module, count(m))
+            from UserModule m
+            group by m.module
+            """)
+    List<ModuleUsageRow> countUsersByModule();
 
     /**
      * Efface les droits d'un compte avant de reecrire l'ensemble. Le remplacement

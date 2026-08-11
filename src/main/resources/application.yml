@@ -139,17 +139,17 @@ pulsetrack:
     # l'inscription sinon. Vide, aucune promotion n'a lieu et l'espace
     # d'administration reste inaccessible a tout le monde.
     admin-email: ${PULSETRACK_ADMIN_EMAIL:}
-    # Modules accordes a toute nouvelle inscription. La liste complete par
-    # defaut : le verrouillage est une restriction que l'administrateur pose
-    # sciemment, pas un parcours d'activation impose a chaque arrivant.
+    # Modules ouverts a toute nouvelle inscription : le socle qui rend
+    # l'application mobile utilisable seule — enregistrer ses seances, se peser,
+    # se fixer des objectifs et recevoir ses rappels.
+    #
+    # Le reste (STATS, WEEKLY_SUMMARY, COACH, EXPORT) se merite : l'administrateur
+    # l'accorde compte par compte. COACH est le plus sensible des quatre, chaque
+    # echange etant un appel facture a Gemini.
     default-modules:
       - 'WORKOUTS'
       - 'BODY_CHECKINS'
       - 'GOALS'
-      - 'STATS'
-      - 'WEEKLY_SUMMARY'
-      - 'COACH'
-      - 'EXPORT'
       - 'PUSH'
     # Compromis entre une requete par appel authentifie et le delai avant qu'un
     # retrait de droit prenne effet. Une minute : assez court pour qu'un

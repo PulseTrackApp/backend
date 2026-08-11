@@ -32,7 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AbstractApiIntegrationTest.NO_REMINDERS,
         AbstractApiIntegrationTest.NO_LOGIN_QUOTA,
         AbstractApiIntegrationTest.NO_REGISTER_QUOTA,
-        AbstractApiIntegrationTest.NO_PASSWORD_RESET_QUOTA
+        AbstractApiIntegrationTest.NO_PASSWORD_RESET_QUOTA,
+        AbstractApiIntegrationTest.ALL_MODULES
 })
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, TestMailConfiguration.class})
@@ -62,6 +63,21 @@ public abstract class AbstractApiIntegrationTest {
     /** Voir {@link #NO_LOGIN_QUOTA}. */
     public static final String NO_PASSWORD_RESET_QUOTA =
             "pulsetrack.security.rate-limit.password-reset.max-attempts=100000";
+
+    /**
+     * Tous les modules ouverts a l'inscription pendant les tests.
+     *
+     * <p>En production, une inscription n'ouvre que le socle et l'administrateur
+     * accorde le reste. C'est une decision produit, appelee a changer. Sans cette
+     * neutralisation, chaque revision du socle ferait echouer les tests des
+     * fonctionnalites qui en sortent — le coach, les statistiques, le bilan —
+     * alors qu'ils n'ont rien a voir avec les droits d'acces.
+     *
+     * <p>Les tests qui eprouvent le verrouillage lui-meme redeclarent leur propre
+     * socle, explicite, dans leur {@code @TestPropertySource}.
+     */
+    public static final String ALL_MODULES = "pulsetrack.access.default-modules="
+            + "WORKOUTS,BODY_CHECKINS,GOALS,STATS,WEEKLY_SUMMARY,COACH,EXPORT,PUSH";
 
     @Autowired
     protected MockMvc mockMvc;
