@@ -14,12 +14,16 @@ import com.pulsetrack.backend.user.Role;
  * le coach. Administrer des acces ne demande pas de lire l'intimite des gens, et
  * ce qui n'est pas expose ici ne peut pas fuiter par cet ecran.
  *
+ * @param emailVerified  adresse confirmee ou non. Utile a l'administration : une
+ *                       adresse jamais confirmee est le premier suspect quand
+ *                       quelqu'un se plaint de ne recevoir aucun courriel
  * @param enabledModules modules accordes, dans l'ordre de declaration, pour que
  *                       l'ecran affiche toujours ses cases dans le meme ordre
  */
 public record AdminUserResponse(UUID id,
                                 String email,
                                 Role role,
+                                boolean emailVerified,
                                 Instant createdAt,
                                 List<AppModule> enabledModules) {
 }

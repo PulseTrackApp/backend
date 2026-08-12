@@ -7,7 +7,9 @@ import java.util.UUID;
 import com.pulsetrack.backend.access.AccessProperties;
 import com.pulsetrack.backend.access.ModuleAccessService;
 import com.pulsetrack.backend.common.error.ConflictException;
+import com.pulsetrack.backend.common.error.EmailNotVerifiedException;
 import com.pulsetrack.backend.common.error.InvalidRefreshTokenException;
+import com.pulsetrack.backend.config.SecurityProperties;
 import com.pulsetrack.backend.profile.UserProfileRepository;
 import com.pulsetrack.backend.user.dto.AuthResponse;
 import com.pulsetrack.backend.user.dto.LoginRequest;
@@ -35,7 +37,9 @@ public class AuthService {
     private final TokenService tokenService;
     private final RefreshTokenService refreshTokens;
     private final ModuleAccessService moduleAccess;
+    private final EmailVerificationService emailVerification;
     private final AccessProperties accessProperties;
+    private final boolean verifiedEmailRequired;
 
     public AuthService(UserRepository users,
                        UserProfileRepository profiles,
@@ -43,14 +47,18 @@ public class AuthService {
                        TokenService tokenService,
                        RefreshTokenService refreshTokens,
                        ModuleAccessService moduleAccess,
-                       AccessProperties accessProperties) {
+                       EmailVerificationService emailVerification,
+                       AccessProperties accessProperties,
+                       SecurityProperties securityProperties) {
         this.users = users;
         this.profiles = profiles;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.refreshTokens = refreshTokens;
         this.moduleAccess = moduleAccess;
+        this.emailVerification = emailVerification;
         this.accessProperties = accessProperties;
+        this.verifiedEmailRequired = securityProperties.emailVerification().required();
     }
 
     /**
@@ -69,6 +77,12 @@ public class AuthService {
         User user = users.save(new User(email, passwordEncoder.encode(request.password()), Instant.now()));
         promoteIfConfiguredAdmin(user);
         moduleAccess.grantDefaults(user.getId());
+
+        // Le code part des maintenant, sans que l'inscription en depende : elle
+        // reussit meme si le courriel n'arrive jamais. Faire l'inverse
+        // laisserait un compte a moitie cree sur une panne de SMTP.
+        emailVerification.sendCodeTo(user);
+
         return toResponse(user, false);
     }
 
@@ -94,7 +108,9 @@ public class AuthService {
     }
 
     /**
-     * @throws BadCredentialsException si l'email est inconnu ou le mot de passe faux
+     * @throws BadCredentialsException   si l'email est inconnu ou le mot de passe faux
+     * @throws EmailNotVerifiedException si la verification est exigee et que
+     *                                   l'adresse n'est pas confirmee
      */
     @Transactional
     public AuthResponse login(LoginRequest request) {
@@ -104,6 +120,10 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BadCredentialsException("Identifiants invalides");
         }
+        // Apres la verification du mot de passe, et jamais avant : annoncer
+        // « adresse non verifiee » a qui ne connait pas le mot de passe
+        // revelerait l'existence du compte.
+        requireVerifiedEmail(user);
 
         return toResponse(user, profiles.existsByUserId(user.getId()));
     }
@@ -127,7 +147,37 @@ public class AuthService {
         User user = users.findById(userId)
                 .orElseThrow(() -> new InvalidRefreshTokenException("Compte introuvable."));
 
+        // Le renouvellement est controle comme la connexion, sinon la session
+        // obtenue a l'inscription se prolongerait indefiniment et la
+        // verification ne serait jamais exigee de personne.
+        requireVerifiedEmail(user);
+
         return toResponse(user, profiles.existsByUserId(user.getId()));
+    }
+
+    /**
+     * Ouvre une session pour un compte dont l'identite vient d'etre etablie
+     * autrement que par le couple email/mot de passe.
+     *
+     * <p>Sert au changement de mot de passe, qui coupe toutes les sessions et
+     * doit en rendre une neuve a l'appareil qui vient de faire la demande —
+     * sans quoi l'utilisateur serait deconnecte pour avoir suivi la procedure.
+     */
+    @Transactional
+    public AuthResponse openSessionFor(User user) {
+        return toResponse(user, profiles.existsByUserId(user.getId()));
+    }
+
+    /**
+     * @throws EmailNotVerifiedException si la verification est exigee par la
+     *                                   configuration et que l'adresse du compte
+     *                                   n'est pas confirmee
+     */
+    private void requireVerifiedEmail(User user) {
+        if (verifiedEmailRequired && !user.isEmailVerified()) {
+            throw new EmailNotVerifiedException(
+                    "Confirmez votre adresse email avec le code recu par courriel.");
+        }
     }
 
     /**
@@ -150,6 +200,7 @@ public class AuthService {
                 user.getId(),
                 user.getEmail(),
                 profileCompleted,
+                user.isEmailVerified(),
                 user.getRole());
     }
 

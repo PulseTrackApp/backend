@@ -75,7 +75,15 @@ public class SecurityConfig {
                                 // aux lettres qui fait foi, et la limitation de
                                 // debit qui empeche d'en abuser.
                                 "/api/v1/auth/forgot-password",
-                                "/api/v1/auth/reset-password").permitAll()
+                                "/api/v1/auth/reset-password",
+                                // Ouverts par necessite egalement : quand la
+                                // verification devient obligatoire, un compte
+                                // non verifie n'obtient plus de session. Exiger
+                                // un jeton pour confirmer son adresse
+                                // l'enfermerait dehors. C'est le code, tire au
+                                // hasard et plafonne, qui authentifie l'appel.
+                                "/api/v1/auth/verify-email",
+                                "/api/v1/auth/resend-verification").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         // L'espace d'administration est ferme au niveau de la
                         // chaine, avant tout controleur. Le poser ici plutot que

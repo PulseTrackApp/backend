@@ -155,7 +155,13 @@ exigent l'en-tête `Authorization: Bearer <jeton>`.
 | Méthode | Route | Auth | Réponse | Rôle |
 |---|---|---|---|---|
 | `POST` | `/auth/register` | non | `201` | Crée un compte, renvoie un jeton |
-| `POST` | `/auth/login` | non | `200` | Connexion |
+| `POST` | `/auth/login` | non | `200` / `403` | Connexion ; `403` si l'adresse doit être confirmée |
+| `POST` | `/auth/forgot-password` | non | `204` | Demande un code de réinitialisation |
+| `POST` | `/auth/reset-password` | non | `204` / `400` | Choisit un nouveau mot de passe avec le code |
+| `POST` | `/auth/verify-email` | non | `204` / `400` | Confirme l'adresse avec le code reçu |
+| `POST` | `/auth/resend-verification` | non | `204` | Renvoie un code de confirmation |
+| `POST` | `/me/password` | oui | `200` / `422` | Change le mot de passe et rend une session neuve |
+| `DELETE` | `/me` | oui | `204` / `422` | Supprime définitivement le compte |
 | `GET` | `/me/profile` | oui | `200` / `404` | Lit le profil sportif |
 | `PUT` | `/me/profile` | oui | `200` | Crée ou remplace le profil |
 | `POST` | `/workouts` | oui | `201` | Enregistre une séance |
@@ -183,7 +189,7 @@ exigent l'en-tête `Authorization: Bearer <jeton>`.
 | `DELETE` | `/me/device-tokens/{token}` | oui | `204` / `404` | Retire l'appareil |
 | `GET` | `/actuator/health` | non | `200` | Sonde de santé |
 
-### Trois points de contrat à connaître
+### Quatre points de contrat à connaître
 
 **Le relevé physique est un `PUT`, pas un `POST`.** L'opération est identifiée par
 la date : la rejouer corrige la valeur du jour au lieu de dédoubler la courbe. Un
@@ -194,6 +200,17 @@ calories. Sans cela, quelqu'un qui se pèse chaque semaine mais ne rouvre jamais
 son profil verrait ses calories calculées à vie avec le poids de l'inscription.
 Le report se fait toujours depuis le relevé le plus récent : rattraper un oubli de
 la semaine passée n'écrase pas le poids d'aujourd'hui.
+
+**La confirmation d'adresse n'est pas exigée par défaut.** Une inscription envoie
+un code par courriel et la réponse porte `emailVerified: false`, mais le compte
+fonctionne normalement. Passer
+`pulsetrack.security.email-verification.required` (variable
+`PULSETRACK_EMAIL_VERIFICATION_REQUIRED`) à `true` change la règle : toute
+connexion — et tout renouvellement de session — d'un compte non confirmé répond
+alors `403` avec le type `email-not-verified`. Les comptes créés avant la
+migration V8 sont tenus pour confirmés ; ne l'activer qu'une fois l'écran de
+saisie du code livré côté mobile, sinon un nouvel inscrit se retrouve devant une
+porte close.
 
 **Le bilan hebdomadaire attend un fuseau.** `GET /me/weekly-summary?zone=Africa/Ouagadougou`
 — sans cette information, le serveur ne sait pas où commencent les journées de

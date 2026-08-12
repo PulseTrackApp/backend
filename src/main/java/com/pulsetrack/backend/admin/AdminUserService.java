@@ -205,7 +205,7 @@ public class AdminUserService {
     }
 
     private static AdminUserResponse toResponse(User user, List<AppModule> modules) {
-        return new AdminUserResponse(
-                user.getId(), user.getEmail(), user.getRole(), user.getCreatedAt(), modules);
+        return new AdminUserResponse(user.getId(), user.getEmail(), user.getRole(),
+                user.isEmailVerified(), user.getCreatedAt(), modules);
     }
 }

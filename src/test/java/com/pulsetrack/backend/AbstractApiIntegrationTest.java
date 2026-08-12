@@ -33,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AbstractApiIntegrationTest.NO_LOGIN_QUOTA,
         AbstractApiIntegrationTest.NO_REGISTER_QUOTA,
         AbstractApiIntegrationTest.NO_PASSWORD_RESET_QUOTA,
+        AbstractApiIntegrationTest.NO_EMAIL_VERIFICATION_QUOTA,
         AbstractApiIntegrationTest.ALL_MODULES
 })
 @AutoConfigureMockMvc
@@ -63,6 +64,14 @@ public abstract class AbstractApiIntegrationTest {
     /** Voir {@link #NO_LOGIN_QUOTA}. */
     public static final String NO_PASSWORD_RESET_QUOTA =
             "pulsetrack.security.rate-limit.password-reset.max-attempts=100000";
+
+    /**
+     * Voir {@link #NO_LOGIN_QUOTA}. Sans cela, une classe qui redemande ou
+     * essaie plusieurs codes de confirmation depuis la meme adresse epuiserait
+     * le quota des classes suivantes, le contexte etant partage.
+     */
+    public static final String NO_EMAIL_VERIFICATION_QUOTA =
+            "pulsetrack.security.rate-limit.email-verification.max-attempts=100000";
 
     /**
      * Tous les modules ouverts a l'inscription pendant les tests.

@@ -71,6 +71,9 @@ class AdminApiIntegrationTest extends AbstractApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].role").value("USER"))
+                // Un compte tout neuf n'a pas confirme son adresse : c'est le
+                // premier suspect quand quelqu'un dit ne rien recevoir.
+                .andExpect(jsonPath("$.content[0].emailVerified").value(false))
                 .andExpect(jsonPath("$.content[0].enabledModules.length()")
                         .value(accessProperties.defaultModules().size()));
     }
@@ -146,6 +149,25 @@ class AdminApiIntegrationTest extends AbstractApiIntegrationTest {
 
         mockMvc.perform(delete("/api/v1/admin/users/{id}", id).header("Authorization", admin()))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    /**
+     * Meme garde-fou du cote de l'utilisateur : la route {@code DELETE /me}
+     * ferait autrement ce que {@code DELETE /admin/users/{id}} refuse, et le
+     * dernier administrateur pourrait fermer l'espace d'administration en
+     * passant par l'application mobile.
+     */
+    @Test
+    void empeche_un_administrateur_de_supprimer_son_propre_compte_par_me() throws Exception {
+        mockMvc.perform(delete("/api/v1/me")
+                        .header("Authorization", admin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"password": "motdepasse123"}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail")
+                        .value("Un administrateur ne peut pas supprimer son propre compte."));
     }
 
     @Test

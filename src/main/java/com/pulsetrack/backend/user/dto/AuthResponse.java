@@ -23,6 +23,11 @@ import com.pulsetrack.backend.user.Role;
  * @param email                   email normalise
  * @param profileCompleted        {@code false} tant que le profil sportif n'est pas
  *                                renseigne : le client mobile route alors vers l'onboarding
+ * @param emailVerified           {@code false} tant que l'adresse n'a pas ete
+ *                                confirmee par le code envoye a l'inscription.
+ *                                Le client peut inviter a la confirmer ; c'est
+ *                                le serveur qui decide si elle est exigee, selon
+ *                                {@code pulsetrack.security.email-verification.required}
  * @param role                    niveau de privilege du compte. Presente ici bien
  *                                qu'il figure deja dans le jeton d'acces : sans
  *                                cela, l'application d'administration devrait
@@ -42,5 +47,6 @@ public record AuthResponse(
         UUID userId,
         String email,
         boolean profileCompleted,
+        boolean emailVerified,
         Role role) {
 }

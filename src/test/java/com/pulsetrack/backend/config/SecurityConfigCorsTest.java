@@ -91,9 +91,11 @@ class SecurityConfigCorsTest {
                         "pulsetrack", Duration.ofHours(1)),
                 new SecurityProperties.RefreshToken(Duration.ofDays(30)),
                 new SecurityProperties.PasswordReset(Duration.ofMinutes(30)),
+                new SecurityProperties.EmailVerification(false, Duration.ofHours(24)),
                 new SecurityProperties.RateLimit(
                         new SecurityProperties.RateLimit.Policy(10, Duration.ofMinutes(5)),
                         new SecurityProperties.RateLimit.Policy(5, Duration.ofHours(1)),
+                        new SecurityProperties.RateLimit.Policy(5, Duration.ofMinutes(15)),
                         new SecurityProperties.RateLimit.Policy(5, Duration.ofMinutes(15))),
                 new SecurityProperties.Cors(allowedOrigins),
                 new SecurityProperties.Encryption("mot-de-passe-de-test", "a1b2c3d4"));

@@ -1,6 +1,7 @@
 package com.pulsetrack.backend.user;
 
 import java.time.Duration;
+import java.util.UUID;
 
 import com.pulsetrack.backend.common.error.RateLimitedException;
 import com.pulsetrack.backend.common.ratelimit.FixedWindowRateLimiter;
@@ -30,6 +31,9 @@ public class AuthRateLimiter {
     private static final String REGISTER_BY_IP = "register:ip:";
     private static final String RESET_BY_IP = "reset:ip:";
     private static final String RESET_BY_EMAIL = "reset:email:";
+    private static final String VERIFY_BY_IP = "verify:ip:";
+    private static final String VERIFY_BY_EMAIL = "verify:email:";
+    private static final String PASSWORD_CHANGE_BY_USER = "password-change:user:";
 
     private final FixedWindowRateLimiter limiter;
     private final SecurityProperties.RateLimit policies;
@@ -81,6 +85,49 @@ public class AuthRateLimiter {
      */
     public void checkPasswordResetAttempt(String clientIp) {
         consume(RESET_BY_IP + clientIp, policies.passwordReset());
+    }
+
+    /**
+     * Demande d'un code de confirmation d'adresse.
+     *
+     * <p>Plafonne par adresse visee autant que par IP, comme la
+     * reinitialisation : sans la premiere cle, l'endpoint permettrait d'inonder
+     * de courriels la boite de quelqu'un d'autre.
+     *
+     * @throws RateLimitedException si l'IP ou l'adresse visee a epuise son quota
+     */
+    public void checkEmailVerificationRequest(String clientIp, String email) {
+        SecurityProperties.RateLimit.Policy policy = policies.emailVerification();
+        consume(VERIFY_BY_IP + clientIp, policy);
+        consume(VERIFY_BY_EMAIL + AuthService.normalizeEmail(email), policy);
+    }
+
+    /**
+     * Essai d'un code de confirmation.
+     *
+     * <p>Seule l'IP est connue : le code ne designe personne tant qu'il n'est
+     * pas valide. C'est ce plafond qui met sa recherche exhaustive hors de
+     * portee.
+     *
+     * @throws RateLimitedException si l'IP a epuise son quota d'essais
+     */
+    public void checkEmailVerificationAttempt(String clientIp) {
+        consume(VERIFY_BY_IP + clientIp, policies.emailVerification());
+    }
+
+    /**
+     * Changement de mot de passe et suppression de compte, tous deux gardes par
+     * le mot de passe actuel.
+     *
+     * <p>Cle sur le compte et non sur l'IP : l'appelant est authentifie, c'est
+     * son jeton qu'on plafonne. Sans ce controle, un jeton vole servirait a
+     * essayer des mots de passe a volonte — et chaque essai coute un bcrypt sur
+     * un serveur a deux processeurs.
+     *
+     * @throws RateLimitedException si le compte a epuise son quota d'essais
+     */
+    public void checkPasswordChange(UUID userId) {
+        consume(PASSWORD_CHANGE_BY_USER + userId, policies.login());
     }
 
     /** A appeler apres une authentification reussie. */

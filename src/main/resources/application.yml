@@ -65,6 +65,19 @@ pulsetrack:
       # Trente minutes : le code voyage par courriel, un canal qu'on ne maitrise
       # pas et dont l'historique reste consultable longtemps.
       ttl: PT30M
+    email-verification:
+      # Faux par defaut, et ce n'est pas un oubli. Passer a `true` ferme la
+      # connexion a tout compte dont l'adresse n'est pas confirmee : les comptes
+      # anterieurs a la fonctionnalite sont tenus pour verifies par la migration,
+      # mais toute inscription posterieure devra passer par le code.
+      #
+      # A n'activer qu'une fois l'ecran de saisie du code livre dans
+      # l'application mobile, sinon un nouvel inscrit se retrouve devant une
+      # porte close sans moyen de l'ouvrir.
+      required: ${PULSETRACK_EMAIL_VERIFICATION_REQUIRED:false}
+      # Vingt-quatre heures : personne n'ouvre sa boite dans la minute, et ce
+      # code n'ouvre aucun acces — il ne fait que confirmer une adresse.
+      ttl: PT24H
     refresh-token:
       # Trente jours : c'est la duree pendant laquelle le client mobile peut
       # renouveler sa session sans redemander le mot de passe. Contrairement au
@@ -86,6 +99,12 @@ pulsetrack:
         # Vaut pour la demande de code comme pour l'essai d'un code. Etroit a
         # dessein : c'est ce plafond qui empeche d'inonder une boite aux lettres
         # et qui met la recherche exhaustive du code hors de portee.
+        max-attempts: 5
+        window: PT15M
+      email-verification:
+        # Compteur separe de celui ci-dessus : quelqu'un qui s'acharne a
+        # verifier son adresse ne doit pas y perdre son droit a demander une
+        # reinitialisation, seul recours en cas d'oubli du mot de passe.
         max-attempts: 5
         window: PT15M
     cors:

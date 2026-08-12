@@ -6,7 +6,9 @@ import com.pulsetrack.backend.user.dto.ForgotPasswordRequest;
 import com.pulsetrack.backend.user.dto.LoginRequest;
 import com.pulsetrack.backend.user.dto.RefreshRequest;
 import com.pulsetrack.backend.user.dto.RegisterRequest;
+import com.pulsetrack.backend.user.dto.ResendVerificationRequest;
 import com.pulsetrack.backend.user.dto.ResetPasswordRequest;
+import com.pulsetrack.backend.user.dto.VerifyEmailRequest;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
@@ -25,8 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Entree et sortie de session.
  *
- * <p>Trois de ces endpoints sont ouverts sans jeton — inscription, connexion,
- * renouvellement — et sont declares un par un dans {@code SecurityConfig}. La
+ * <p>La plupart de ces endpoints sont ouverts sans jeton — inscription,
+ * connexion, renouvellement, reinitialisation de mot de passe, confirmation
+ * d'adresse — et sont declares un par un dans {@code SecurityConfig}. La
  * deconnexion, elle, exige un jeton d'acces valide : c'est ce qui garantit que
  * la session fermee est bien celle de l'appelant.
  */
@@ -37,13 +40,16 @@ public class AuthController {
     private final AuthService authService;
     private final AuthRateLimiter rateLimiter;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
     public AuthController(AuthService authService,
                           AuthRateLimiter rateLimiter,
-                          PasswordResetService passwordResetService) {
+                          PasswordResetService passwordResetService,
+                          EmailVerificationService emailVerificationService) {
         this.authService = authService;
         this.rateLimiter = rateLimiter;
         this.passwordResetService = passwordResetService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     /**
@@ -116,6 +122,39 @@ public class AuthController {
                               HttpServletRequest httpRequest) {
         rateLimiter.checkPasswordResetAttempt(clientIp(httpRequest));
         passwordResetService.resetPassword(request.code(), request.newPassword());
+    }
+
+    /**
+     * Confirme l'adresse email a l'aide du code recu.
+     *
+     * <p>Ouvert sans jeton, et c'est necessaire : quand la verification est
+     * exigee, l'utilisateur non verifie ne peut precisement pas obtenir de
+     * session. Un endpoint protege l'enfermerait dehors. Le code, tire au
+     * hasard, joue ici le role d'authentification.
+     */
+    @PostMapping("/verify-email")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirements
+    public void verifyEmail(@Valid @RequestBody VerifyEmailRequest request,
+                            HttpServletRequest httpRequest) {
+        rateLimiter.checkEmailVerificationAttempt(clientIp(httpRequest));
+        emailVerificationService.verify(request.code());
+    }
+
+    /**
+     * Renvoie un code de confirmation.
+     *
+     * <p>Repond toujours 204 : adresse inconnue, adresse deja verifiee et envoi
+     * reel sont indiscernables, faute de quoi l'endpoint dirait qui possede un
+     * compte chez nous.
+     */
+    @PostMapping("/resend-verification")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirements
+    public void resendVerification(@Valid @RequestBody ResendVerificationRequest request,
+                                   HttpServletRequest httpRequest) {
+        rateLimiter.checkEmailVerificationRequest(clientIp(httpRequest), request.email());
+        emailVerificationService.requestCode(request.email());
     }
 
     /**

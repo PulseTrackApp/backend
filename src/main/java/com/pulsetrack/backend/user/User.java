@@ -44,6 +44,15 @@ public class User {
     @Column(nullable = false, length = 16)
     private Role role = Role.USER;
 
+    /**
+     * Faux tant que le compte n'a pas prouve qu'il lit la boite aux lettres
+     * declaree. Une adresse mal saisie rendrait sinon la reinitialisation de mot
+     * de passe inoperante, ce qu'on ne decouvrirait que le jour ou il faut s'en
+     * servir.
+     */
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
     /** Requis par JPA. */
     protected User() {
     }
@@ -53,6 +62,7 @@ public class User {
         this.passwordHash = passwordHash;
         this.createdAt = createdAt;
         this.role = Role.USER;
+        this.emailVerified = false;
     }
 
     public UUID getId() {
@@ -99,5 +109,18 @@ public class User {
      */
     public void changeRole(Role newRole) {
         this.role = newRole;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    /**
+     * Marque l'adresse comme verifiee. Sans retour en arriere : rien dans le
+     * produit ne permet de changer d'adresse, une verification acquise ne peut
+     * donc plus etre remise en cause.
+     */
+    public void markEmailVerified() {
+        this.emailVerified = true;
     }
 }

@@ -106,6 +106,11 @@ public class AdminBootstrap implements ApplicationRunner {
 
         User admin = new User(email, passwordEncoder.encode(properties.adminPassword()), Instant.now());
         admin.changeRole(Role.ADMIN);
+        // Adresse posee par l'exploitant dans la configuration du serveur, pas
+        // saisie dans un formulaire : elle n'a rien a prouver. Sans cela, rendre
+        // la verification obligatoire fermerait l'espace d'administration a
+        // celui-la meme qui l'a configure, et personne ne pourrait le rouvrir.
+        admin.markEmailVerified();
         User saved = users.save(admin);
         moduleAccess.grantDefaults(saved.getId());
 

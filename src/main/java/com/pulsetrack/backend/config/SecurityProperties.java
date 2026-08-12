@@ -18,17 +18,19 @@ import org.springframework.validation.annotation.Validated;
  * configuree doit refuser de demarrer plutot que de signer des jetons avec un
  * secret vide.
  *
- * @param jwt          parametres de signature et de duree de vie des jetons
- * @param refreshToken duree de vie des jetons de renouvellement
- * @param rateLimit    plafonds de tentatives sur les endpoints d'authentification
- * @param cors         origines autorisees pour un client navigateur
- * @param encryption   secret servant a chiffrer les donnees sensibles au repos
+ * @param jwt               parametres de signature et de duree de vie des jetons
+ * @param refreshToken      duree de vie des jetons de renouvellement
+ * @param emailVerification confirmation de l'adresse declaree a l'inscription
+ * @param rateLimit         plafonds de tentatives sur les endpoints d'authentification
+ * @param cors              origines autorisees pour un client navigateur
+ * @param encryption        secret servant a chiffrer les donnees sensibles au repos
  */
 @ConfigurationProperties(prefix = "pulsetrack.security")
 @Validated
 public record SecurityProperties(@NotNull @Valid Jwt jwt,
                                  @NotNull @Valid RefreshToken refreshToken,
                                  @NotNull @Valid PasswordReset passwordReset,
+                                 @NotNull @Valid EmailVerification emailVerification,
                                  @NotNull @Valid RateLimit rateLimit,
                                  @NotNull @Valid Cors cors,
                                  @NotNull @Valid Encryption encryption) {
@@ -41,6 +43,24 @@ public record SecurityProperties(@NotNull @Valid Jwt jwt,
      *            reste consultable longtemps.
      */
     public record PasswordReset(@NotNull Duration ttl) {
+    }
+
+    /**
+     * Confirmation de l'adresse email.
+     *
+     * @param required {@code true} exige une adresse verifiee pour ouvrir une
+     *                 session. Faux par defaut, et c'est un choix : une
+     *                 exigence posee du jour au lendemain enfermerait dehors
+     *                 tous ceux qui n'ont jamais eu a verifier quoi que ce soit.
+     *                 La session obtenue a l'inscription reste valable jusqu'a
+     *                 son expiration ; c'est le renouvellement suivant, ou la
+     *                 connexion suivante, qui exige la verification.
+     * @param ttl      duree de validite du code. Plus longue que celle du code
+     *                 de reinitialisation : personne n'ouvre sa boite aux
+     *                 lettres dans la minute, et un code perime n'ouvre ici
+     *                 aucun acces, il ne fait que confirmer une adresse.
+     */
+    public record EmailVerification(boolean required, @NotNull Duration ttl) {
     }
 
     /**
@@ -73,16 +93,24 @@ public record SecurityProperties(@NotNull @Valid Jwt jwt,
      * passe que la machine peut en verifier, et {@code /auth/register} permet de
      * remplir la base de comptes fantomes.
      *
-     * @param login         tentatives de connexion
-     * @param register      creations de compte
-     * @param passwordReset demandes de code et essais de code. Sans plafond,
-     *                      l'endpoint devient un moyen d'inonder de courriels
-     *                      une adresse choisie, et le code a huit caracteres
-     *                      finit par ceder a une recherche exhaustive.
+     * @param login             tentatives de connexion
+     * @param register          creations de compte
+     * @param passwordReset     demandes de code et essais de code. Sans plafond,
+     *                          l'endpoint devient un moyen d'inonder de
+     *                          courriels une adresse choisie, et le code a huit
+     *                          caracteres finit par ceder a une recherche
+     *                          exhaustive.
+     * @param emailVerification renvois de code de verification et essais de
+     *                          code. Plafond distinct de celui de la
+     *                          reinitialisation, sinon saturer l'un fermerait
+     *                          l'autre — et quelqu'un qui n'arrive pas a
+     *                          verifier son adresse perdrait aussi le seul
+     *                          moyen de recuperer son mot de passe.
      */
     public record RateLimit(@NotNull @Valid Policy login,
                             @NotNull @Valid Policy register,
-                            @NotNull @Valid Policy passwordReset) {
+                            @NotNull @Valid Policy passwordReset,
+                            @NotNull @Valid Policy emailVerification) {
 
         /**
          * @param maxAttempts tentatives tolerees par fenetre

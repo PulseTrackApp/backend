@@ -128,6 +128,26 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
+     * Meme raisonnement que pour le code de reinitialisation : inconnu, expire
+     * et deja consomme se ressemblent vus du client.
+     */
+    @ExceptionHandler(InvalidVerificationCodeException.class)
+    ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Code invalide",
+                "Ce code de verification est invalide ou a expire.", "invalid-verification-code");
+    }
+
+    /**
+     * Le mot de passe etait bon, seule l'adresse n'est pas confirmee. Le type du
+     * probleme est ce qui permet au client de router vers la saisie du code
+     * plutot que d'afficher une enieme erreur d'identifiants.
+     */
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    ProblemDetail handleEmailNotVerified(EmailNotVerifiedException ex) {
+        return problem(HttpStatus.FORBIDDEN, "Adresse non verifiee", ex.getMessage(), "email-not-verified");
+    }
+
+    /**
      * Valeur temporelle irrecevable, typiquement un fuseau horaire inconnu passe
      * en parametre de requete. C'est une faute du client, pas du serveur : sans
      * ce cas, {@code ZoneId.of("Mars/Olympus")} finirait en 500.
