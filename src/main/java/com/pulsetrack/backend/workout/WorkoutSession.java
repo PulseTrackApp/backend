@@ -139,6 +139,26 @@ public class WorkoutSession {
     }
 
     /**
+     * Remplace les metriques figees a l'enregistrement.
+     *
+     * <p>Reservee au recalcul d'ensemble : les metriques sont calculees une fois
+     * pour toutes a la creation, et rien dans le parcours normal ne doit les
+     * modifier. Elles ne redeviennent negociables que le jour ou la formule
+     * elle-meme est corrigee, et il faut alors pouvoir reparer l'historique
+     * plutot que de le laisser mentir.
+     */
+    void applyMetrics(WorkoutMetrics metrics) {
+        this.durationSeconds = metrics.durationSeconds();
+        this.movingDurationSeconds = metrics.movingDurationSeconds();
+        this.distanceMeters = metrics.distanceMeters();
+        this.averagePaceSecondsPerKm = metrics.averagePaceSecondsPerKm();
+        this.averageSpeedKmh = metrics.averageSpeedKmh();
+        this.maxSpeedKmh = metrics.maxSpeedKmh();
+        this.elevationGainMeters = metrics.elevationGainMeters();
+        this.caloriesBurned = metrics.caloriesBurned();
+    }
+
+    /**
      * Ajoute un point au trace en maintenant les deux cotes de l'association.
      * Passer par cette methode evite l'oubli classique du cote proprietaire, qui
      * se traduirait par une contrainte {@code not null} violee a l'insertion.

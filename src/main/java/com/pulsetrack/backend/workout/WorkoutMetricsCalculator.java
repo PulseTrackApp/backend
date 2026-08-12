@@ -16,14 +16,20 @@ import org.springframework.stereotype.Component;
  * web) affichent exactement les memes chiffres, et pour qu'une correction de
  * formule ne demande pas une mise a jour du store.
  *
- * <p>Classe sans etat ni dependance : elle s'instancie avec {@code new} dans un
- * test unitaire, sans demarrer Spring.
+ * <p><strong>Rien n'est lu directement sur les positions brutes, sauf
+ * l'altitude.</strong> Distance, temps en mouvement et pic de vitesse sont lus
+ * sur la trajectoire reconstituee par {@link TrackFilter}. Additionner les
+ * distances entre points bruts surestime le parcours d'autant plus que les
+ * points sont rapproches, et le biais va toujours dans le meme sens : le bruit
+ * s'ajoute a chaque segment, il ne s'en retranche jamais.
+ *
+ * <p>Classe sans etat ni dependance a injecter : elle s'instancie avec
+ * {@code new} dans un test unitaire, sans demarrer Spring.
  */
 @Component
 public class WorkoutMetricsCalculator {
 
-    /** Rayon moyen de la Terre, pour la formule de haversine. */
-    private static final double EARTH_RADIUS_METERS = 6_371_000d;
+    private final TrackFilter trackFilter = new TrackFilter();
 
     /**
      * En dessous de 0,5 m/s (1,8 km/h), on considere l'utilisateur a l'arret :
@@ -38,24 +44,6 @@ public class WorkoutMetricsCalculator {
      * un parcours parfaitement plat.
      */
     private static final double MIN_ELEVATION_DELTA_METERS = 1.0;
-
-    /**
-     * Precision supposee quand le telephone n'en annonce aucune. Volontairement
-     * prudente : sous-estimer le bruit ferait passer pour un pic de vitesse ce
-     * qui n'est qu'un point mal localise.
-     */
-    private static final double DEFAULT_ACCURACY_METERS = 10.0;
-
-    /**
-     * Proportion de points munis d'une vitesse capteur a partir de laquelle on
-     * cesse de deriver le pic des positions.
-     *
-     * <p>Quatre cinquiemes : assez pour qu'un trou passager — un tunnel, un
-     * demarrage a froid — ne fasse pas basculer tout le calcul, assez peu pour
-     * qu'un capteur qui ne parle qu'a l'occasion ne prive pas la seance de son
-     * pic.
-     */
-    private static final double SENSOR_COVERAGE_RATIO = 0.8;
 
     private static final double SECONDS_PER_HOUR = 3_600d;
     private static final double METERS_PER_KM = 1_000d;
@@ -85,17 +73,21 @@ public class WorkoutMetricsCalculator {
         double maxSpeedMps;
         double elevationGainMeters;
 
-        if (points != null && points.size() >= 2) {
-            Track track = walkTrack(points);
+        List<TrackFilter.FilteredPoint> estimated = points == null ? List.of() : trackFilter.filter(points);
+
+        if (estimated.size() >= 2) {
             // Le trace fait foi sur la distance annoncee par le client : c'est la
             // seule valeur que le serveur peut verifier.
-            distanceMeters = track.distanceMeters;
+            distanceMeters = TrackFilter.distanceMeters(estimated);
             // Plafonne au temps total : un trace dont les horodatages depassent
             // la fenetre declaree ne doit pas produire un temps en mouvement
             // superieur a la duree de la seance.
-            movingDurationSeconds = Math.min(track.movingSeconds, durationSeconds);
-            maxSpeedMps = track.maxSpeedMps();
-            elevationGainMeters = track.elevationGainMeters;
+            movingDurationSeconds = Math.min(movingSeconds(estimated), durationSeconds);
+            maxSpeedMps = maxSpeedMps(estimated);
+            // Le denivele reste lu sur les altitudes brutes : le filtre travaille
+            // dans le plan horizontal, ou le bruit fausse la distance, et n'a
+            // rien a dire de la verticale.
+            elevationGainMeters = elevationGain(points);
         } else {
             // Seance sans GPS (tapis, salle, oubli d'autorisation) : on retombe
             // sur ce que l'utilisateur declare, et tout le temps compte.
@@ -205,90 +197,73 @@ public class WorkoutMetricsCalculator {
     }
 
     /**
-     * Parcourt le trace segment par segment et cumule distance, temps en
-     * mouvement, vitesse maximale et denivele positif.
+     * Temps passe en mouvement, lu sur la vitesse estimee.
+     *
+     * <p>Sur la vitesse estimee et non sur le deplacement mesure entre deux
+     * points : a l'arret, le bruit du GPS suffit a faire franchir le seuil a un
+     * segment sur deux, et les pauses disparaissaient du decompte.
      */
-    private Track walkTrack(List<GpsPointRequest> points) {
-        Track track = new Track();
-
-        for (int i = 1; i < points.size(); i++) {
-            GpsPointRequest previous = points.get(i - 1);
-            GpsPointRequest current = points.get(i);
-
-            double segmentMeters = haversineMeters(
-                    previous.latitude(), previous.longitude(),
-                    current.latitude(), current.longitude());
-            long segmentSeconds = Duration.between(previous.recordedAt(), current.recordedAt()).getSeconds();
-
-            track.distanceMeters += segmentMeters;
-
-            if (segmentSeconds > 0) {
-                double segmentSpeedMps = segmentMeters / segmentSeconds;
-                if (segmentSpeedMps >= MOVING_SPEED_THRESHOLD_MPS) {
-                    track.movingSeconds += segmentSeconds;
-                }
-                // Le pic tire des positions ignore les segments dont le
-                // deplacement tient dans l'incertitude du GPS. Sans ce
-                // garde-fou, un seul point mal localise suffit : une marche du
-                // 11 aout 2026 affichait 23,5 km/h — un point a 22,8 metres de
-                // precision avait produit un saut de vingt metres en trois
-                // secondes.
-                //
-                // La distance, elle, continue de cumuler ces segments : les
-                // ecarts s'y compensent sur la duree, alors qu'un maximum retient
-                // le pire d'entre eux pour toujours.
-                if (segmentMeters > noiseFloorMeters(previous, current)) {
-                    track.positionMaxMps = Math.max(track.positionMaxMps, segmentSpeedMps);
-                }
+    private long movingSeconds(List<TrackFilter.FilteredPoint> estimated) {
+        long moving = 0;
+        for (int i = 1; i < estimated.size(); i++) {
+            TrackFilter.FilteredPoint previous = estimated.get(i - 1);
+            TrackFilter.FilteredPoint current = estimated.get(i);
+            long seconds = Duration.between(previous.at(), current.at()).getSeconds();
+            if (seconds <= 0) {
+                continue;
             }
-
-            // Vitesse annoncee par le capteur, quand le telephone la fournit.
-            track.segments++;
-            if (current.speed() != null) {
-                track.sensorSamples++;
-                track.sensorMaxMps = Math.max(track.sensorMaxMps, current.speed());
-            }
-
-            if (previous.altitude() != null && current.altitude() != null) {
-                double climb = current.altitude() - previous.altitude();
-                if (climb >= MIN_ELEVATION_DELTA_METERS) {
-                    track.elevationGainMeters += climb;
-                }
+            // Les deux extremites doivent etre en mouvement, et non leur
+            // moyenne : entre un point a l'arret et le precedent lance a pleine
+            // allure, la moyenne reste au-dessus du seuil et l'intervalle
+            // entier — parfois plusieurs minutes — passerait pour du mouvement.
+            if (Math.min(previous.speedMps(), current.speedMps()) >= MOVING_SPEED_THRESHOLD_MPS) {
+                moving += seconds;
             }
         }
-        return track;
+        return moving;
     }
 
     /**
-     * Deplacement en deca duquel un segment n'est pas distinguable du bruit du
-     * GPS.
+     * Pic de vitesse, lu sur la vitesse estimee.
      *
-     * <p>Retient la moins bonne des deux precisions annoncees : un segment ne
-     * vaut pas mieux que son point le plus incertain. Quand le telephone ne
-     * renseigne rien, on retombe sur une valeur prudente plutot que sur zero,
-     * qui laisserait passer n'importe quel saut.
+     * <p>Ce que le filtre rend n'est plus une difference entre deux positions
+     * bruitees mais une estimation qui tient compte de la mesure du capteur et
+     * de la vraisemblance physique du mouvement. Le pic fantome de 23,5 km/h
+     * releve le 11 aout 2026 sur une marche ne peut plus se produire : un point
+     * isole trop eloigne est ecarte par le filtre, et la vitesse ne peut pas
+     * bondir plus vite que l'acceleration admise.
      */
-    private double noiseFloorMeters(GpsPointRequest previous, GpsPointRequest current) {
-        double worst = Math.max(
-                previous.accuracy() == null ? DEFAULT_ACCURACY_METERS : previous.accuracy(),
-                current.accuracy() == null ? DEFAULT_ACCURACY_METERS : current.accuracy());
-        return Math.max(worst, 0d);
+    private double maxSpeedMps(List<TrackFilter.FilteredPoint> estimated) {
+        double max = 0;
+        for (TrackFilter.FilteredPoint point : estimated) {
+            max = Math.max(max, point.speedMps());
+        }
+        return max;
     }
 
     /**
-     * Distance orthodromique entre deux coordonnees (formule de haversine).
-     * Suffisamment precise a l'echelle d'un parcours sportif, et bien plus simple
-     * qu'un calcul ellipsoidal.
+     * Denivele positif cumule, lu sur les altitudes brutes.
+     *
+     * <p>Le filtre ne travaille que dans le plan horizontal, ou le bruit fausse
+     * la distance parcourue. L'altitude a ses propres defauts — un barometre
+     * derive avec la meteo, un GPS est trois fois moins precis en vertical qu'en
+     * horizontal — mais les traiter demanderait un autre modele, et le seuil
+     * d'un metre suffit a ecarter le tremblement du capteur.
      */
-    private double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
-        double deltaLat = Math.toRadians(lat2 - lat1);
-        double deltaLon = Math.toRadians(lon2 - lon1);
-        double lat1Rad = Math.toRadians(lat1);
-        double lat2Rad = Math.toRadians(lat2);
-
-        double a = Math.pow(Math.sin(deltaLat / 2), 2)
-                + Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.pow(Math.sin(deltaLon / 2), 2);
-        return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1d, Math.sqrt(a)));
+    private double elevationGain(List<GpsPointRequest> points) {
+        double gain = 0;
+        for (int i = 1; i < points.size(); i++) {
+            Double previous = points.get(i - 1).altitude();
+            Double current = points.get(i).altitude();
+            if (previous == null || current == null) {
+                continue;
+            }
+            double climb = current - previous;
+            if (climb >= MIN_ELEVATION_DELTA_METERS) {
+                gain += climb;
+            }
+        }
+        return gain;
     }
 
     private double round(double value, int decimals) {
@@ -296,45 +271,4 @@ public class WorkoutMetricsCalculator {
         return Math.round(value * factor) / factor;
     }
 
-    /** Accumulateur interne du parcours du trace. */
-    private static final class Track {
-        private double distanceMeters;
-        private long movingSeconds;
-        private double elevationGainMeters;
-
-        /** Nombre de segments parcourus, soit le nombre de points moins un. */
-        private int segments;
-        /** Segments dont le point d'arrivee portait une vitesse capteur. */
-        private int sensorSamples;
-        private double sensorMaxMps;
-        private double positionMaxMps;
-
-        /**
-         * Pic retenu pour la seance.
-         *
-         * <p><strong>Le capteur prime sur les positions des qu'il couvre le
-         * trace.</strong> Sa mesure vient de l'effet Doppler, quand la vitesse
-         * tiree des positions n'est qu'une difference entre deux points
-         * bruites — et cette difference est d'autant plus fausse que les points
-         * sont rapproches. Mesure faite sur une vraie marche du 11 aout 2026,
-         * echantillonnee toutes les deux secondes avec quatre metres de
-         * precision : le capteur plafonnait a 6,2 km/h la ou les positions
-         * annoncaient 11,1 km/h. Marcher deux secondes deplace de 2,8 metres,
-         * trois metres de tremblement suffisent donc a doubler la vitesse
-         * apparente — un ecart qu'aucun seuil de bruit raisonnable ne rattrape,
-         * puisque le deplacement reel est du meme ordre que le bruit.
-         *
-         * <p>Les positions restent le repli quand le telephone ne dit rien : un
-         * pic imparfait vaut mieux qu'un pic absent. Elles reprennent aussi la
-         * main si le capteur, bien que present, n'a jamais annonce le moindre
-         * mouvement — certains appareils renvoient zero en permanence, et les
-         * croire effacerait le pic d'une seance qui a pourtant eu lieu.
-         */
-        private double maxSpeedMps() {
-            boolean sensorCoversTrack = segments > 0
-                    && sensorSamples >= SENSOR_COVERAGE_RATIO * segments
-                    && sensorMaxMps > 0;
-            return sensorCoversTrack ? sensorMaxMps : Math.max(sensorMaxMps, positionMaxMps);
-        }
-    }
 }

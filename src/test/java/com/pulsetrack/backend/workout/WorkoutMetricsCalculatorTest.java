@@ -239,11 +239,15 @@ class WorkoutMetricsCalculatorTest {
         WorkoutMetrics metrics = calculator.calculate(
                 SportType.WALK, START, START.plusSeconds(120), track, null, WEIGHT_KG);
 
-        // Sans la regle du capteur, les segments tremblants imposeraient
-        // 11,2 km/h. Avec elle, le pic retombe au niveau de ce que le capteur a
-        // mesure — ici sous la moyenne, qui sert alors de plancher.
-        assertThat(metrics.maxSpeedKmh()).isLessThan(7d);
-        assertThat(metrics.maxSpeedKmh()).isEqualTo(metrics.averageSpeedKmh());
+        // Les positions tremblantes suggerent 11,2 km/h, le capteur mesure
+        // 5,04 km/h. L'estimation doit rester du cote de la mesure.
+        assertThat(metrics.maxSpeedKmh())
+                .as("pic estime face aux 11,2 km/h suggeres par les positions")
+                .isBetween(4.5, 6.5);
+        // La distance suit le meme raisonnement : 1,4 m/s pendant 118 s.
+        assertThat(metrics.distanceMeters())
+                .as("distance estimee, la ou les positions brutes donnent 366 m")
+                .isBetween(150d, 190d);
     }
 
     /**

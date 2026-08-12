@@ -12,9 +12,12 @@ import com.pulsetrack.backend.admin.dto.AdminUserResponse;
 import com.pulsetrack.backend.admin.dto.UpdateModulesRequest;
 import com.pulsetrack.backend.admin.dto.UpdateRoleRequest;
 import com.pulsetrack.backend.common.security.AuthenticatedUser;
+import com.pulsetrack.backend.workout.WorkoutMetricsBackfill;
 
 import jakarta.validation.Valid;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -24,6 +27,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,10 +47,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/admin")
 public class AdminController {
 
-    private final AdminUserService adminUsers;
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
 
-    public AdminController(AdminUserService adminUsers) {
+    private final AdminUserService adminUsers;
+    private final WorkoutMetricsBackfill backfill;
+
+    public AdminController(AdminUserService adminUsers, WorkoutMetricsBackfill backfill) {
         this.adminUsers = adminUsers;
+        this.backfill = backfill;
     }
 
     /**
@@ -100,5 +108,25 @@ public class AdminController {
     @GetMapping("/stats")
     public AdminStatsResponse stats() {
         return adminUsers.stats();
+    }
+
+    /**
+     * Rejoue le calcul des metriques sur toutes les seances enregistrees.
+     *
+     * <p>A appeler apres une correction de formule : les metriques sont figees a
+     * l'enregistrement, et sans ce geste l'historique continue d'afficher les
+     * chiffres produits par l'ancien calcul. L'operation est idempotente, et la
+     * reponse dit combien de seances ont reellement change.
+     *
+     * <p>Ne renvoie aucune donnee personnelle, seulement des compteurs : un
+     * administrateur declenche une maintenance, il ne lit pas les parcours des
+     * autres.
+     */
+    @PostMapping("/workouts/recompute-metrics")
+    public WorkoutMetricsBackfill.Result recomputeWorkoutMetrics(@AuthenticationPrincipal Jwt jwt) {
+        WorkoutMetricsBackfill.Result result = backfill.recomputeAll();
+        log.info("Administrateur {} a relance le calcul des metriques : {}",
+                AuthenticatedUser.idOf(jwt), result);
+        return result;
     }
 }

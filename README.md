@@ -187,9 +187,10 @@ exigent l'en-tête `Authorization: Bearer <jeton>`.
 | `GET` | `/me/coach/latest` | oui | `200` / `204` | Dernier conseil, sans appeler Gemini |
 | `PUT` | `/me/device-tokens` | oui | `204` | Enregistre l'appareil pour les notifications |
 | `DELETE` | `/me/device-tokens/{token}` | oui | `204` / `404` | Retire l'appareil |
+| `POST` | `/admin/workouts/recompute-metrics` | admin | `200` | Rejoue le calcul des métriques sur l'historique |
 | `GET` | `/actuator/health` | non | `200` | Sonde de santé |
 
-### Quatre points de contrat à connaître
+### Cinq points de contrat à connaître
 
 **Le relevé physique est un `PUT`, pas un `POST`.** L'opération est identifiée par
 la date : la rejouer corrige la valeur du jour au lieu de dédoubler la courbe. Un
@@ -200,6 +201,23 @@ calories. Sans cela, quelqu'un qui se pèse chaque semaine mais ne rouvre jamais
 son profil verrait ses calories calculées à vie avec le poids de l'inscription.
 Le report se fait toujours depuis le relevé le plus récent : rattraper un oubli de
 la semaine passée n'écrase pas le poids d'aujourd'hui.
+
+**Les métriques d'une séance ne sont pas lues sur les positions brutes.** Distance,
+temps en mouvement et pic de vitesse viennent d'un filtre de Kalman
+(`TrackFilter`) qui fusionne les positions et la vitesse Doppler du capteur, puis
+intègre la vitesse estimée. Additionner les distances entre points bruts
+surestime le parcours d'autant plus que les points sont rapprochés — mesuré à
++88 % sur une marche simulée échantillonnée toutes les trois secondes avec quatre
+mètres de précision. Le filtre est validé sur des trajets simulés à distance
+connue (`TrackFilterTest`) : marche, course, parcours courbe, immobilité, point
+aberrant, capteur muet.
+
+Les métriques restent **figées à l'enregistrement**. Après toute correction de
+formule, il faut donc réparer l'historique :
+`POST /api/v1/admin/workouts/recompute-metrics`, qui rejoue le calculateur sur
+chaque séance et ne réécrit que ce qui change. Ne jamais refaire ce recalcul en
+SQL dans une migration : il faudrait y réécrire tout le calculateur dans un
+second langage, sans garantie qu'il dise la même chose.
 
 **La confirmation d'adresse n'est pas exigée par défaut.** Une inscription envoie
 un code par courriel et la réponse porte `emailVerified: false`, mais le compte
