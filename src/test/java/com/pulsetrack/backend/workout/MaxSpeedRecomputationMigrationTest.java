@@ -82,6 +82,25 @@ class MaxSpeedRecomputationMigrationTest extends AbstractApiIntegrationTest {
     }
 
     /**
+     * Capteur muet : le pic retombe sur les positions, et la migration doit
+     * suivre le meme repli que le code Java. Une migration qui se contenterait
+     * de lire le capteur ecrirait ici la vitesse moyenne, et toutes les seances
+     * enregistrees sans capteur perdraient leur pic d'un coup.
+     */
+    @Test
+    void retombe_sur_les_positions_quand_le_capteur_se_tait() {
+        List<GpsPointRequest> trace = courseSansCapteur();
+        WorkoutMetrics attendu = metriquesJava(trace);
+        UUID seance = insereSeance(trace, attendu, PIC_FANTOME);
+
+        executeLaMigration();
+
+        assertThat(picEnBase(seance)).isEqualTo(attendu.maxSpeedKmh());
+        // Le repli doit vraiment produire un pic, pas se replier sur la moyenne.
+        assertThat(picEnBase(seance)).isGreaterThan(attendu.averageSpeedKmh());
+    }
+
+    /**
      * Garde-fou contre les degats collateraux : une seance deja correcte doit
      * traverser la migration sans bouger. C'est ce qui rend l'operation
      * rejouable sans risque a chaque demarrage.
@@ -145,7 +164,14 @@ class MaxSpeedRecomputationMigrationTest extends AbstractApiIntegrationTest {
         return points;
     }
 
-    /** Course a 5 m/s, un point toutes les dix secondes : cinquante metres par segment. */
+    /**
+     * Course a cinquante metres toutes les dix secondes, ou le capteur annonce
+     * 4,5 m/s quand les positions en suggerent 5.
+     *
+     * <p>L'ecart est voulu : il fait echouer le test si la migration derive le
+     * pic des positions alors que le capteur couvre le trace. Sans lui, les deux
+     * regles donneraient le meme chiffre et le test ne prouverait rien.
+     */
     private List<GpsPointRequest> courseFranche() {
         List<GpsPointRequest> points = new ArrayList<>();
         Instant depart = Instant.parse("2026-08-11T06:00:00Z");
@@ -154,7 +180,27 @@ class MaxSpeedRecomputationMigrationTest extends AbstractApiIntegrationTest {
         for (int i = 0; i < 10; i++) {
             latitude += 50 * 0.000009;
             points.add(new GpsPointRequest(
-                    latitude, -1.5000, 300.0, 4.0, 5.0, depart.plusSeconds(10L * i)));
+                    latitude, -1.5000, 300.0, 4.0, 4.5, depart.plusSeconds(10L * i)));
+        }
+        return points;
+    }
+
+    /**
+     * Meme trace, capteur muet : le pic ne peut alors venir que des positions.
+     * C'est le repli, et il doit rester exact.
+     */
+    private List<GpsPointRequest> courseSansCapteur() {
+        List<GpsPointRequest> points = new ArrayList<>();
+        Instant depart = Instant.parse("2026-08-11T07:00:00Z");
+        double latitude = 12.4500;
+
+        for (int i = 0; i < 10; i++) {
+            // Une pointe franche au milieu — 80 m au lieu de 50 — pour que le
+            // pic se distingue de la moyenne : sans elle, une allure constante
+            // rendrait les deux egaux et le test ne dirait plus rien.
+            latitude += (i == 5 ? 80 : 50) * 0.000009;
+            points.add(new GpsPointRequest(
+                    latitude, -1.5000, 300.0, 4.0, null, depart.plusSeconds(10L * i)));
         }
         return points;
     }
@@ -221,17 +267,21 @@ class MaxSpeedRecomputationMigrationTest extends AbstractApiIntegrationTest {
         return seance;
     }
 
-    /** Rejoue le fichier de migration tel qu'il partira en production. */
+    /**
+     * Rejoue les fichiers de migration tels qu'ils partent en production, dans
+     * leur ordre de version — c'est exactement ce qu'une base existante a subi.
+     */
     private void executeLaMigration() {
-        jdbc.update(sqlDeLaMigration());
+        jdbc.update(sqlDeLaMigration("V9__recompute_max_speed.sql"));
+        jdbc.update(sqlDeLaMigration("V10__max_speed_from_sensor.sql"));
     }
 
-    private String sqlDeLaMigration() {
+    private String sqlDeLaMigration(String fichier) {
         try {
-            return new String(new ClassPathResource("db/migration/V9__recompute_max_speed.sql")
+            return new String(new ClassPathResource("db/migration/" + fichier)
                     .getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new IllegalStateException("Migration V9 introuvable dans le classpath", e);
+            throw new IllegalStateException("Migration " + fichier + " introuvable dans le classpath", e);
         }
     }
 

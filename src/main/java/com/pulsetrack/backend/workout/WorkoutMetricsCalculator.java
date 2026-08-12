@@ -46,6 +46,17 @@ public class WorkoutMetricsCalculator {
      */
     private static final double DEFAULT_ACCURACY_METERS = 10.0;
 
+    /**
+     * Proportion de points munis d'une vitesse capteur a partir de laquelle on
+     * cesse de deriver le pic des positions.
+     *
+     * <p>Quatre cinquiemes : assez pour qu'un trou passager — un tunnel, un
+     * demarrage a froid — ne fasse pas basculer tout le calcul, assez peu pour
+     * qu'un capteur qui ne parle qu'a l'occasion ne prive pas la seance de son
+     * pic.
+     */
+    private static final double SENSOR_COVERAGE_RATIO = 0.8;
+
     private static final double SECONDS_PER_HOUR = 3_600d;
     private static final double METERS_PER_KM = 1_000d;
 
@@ -83,7 +94,7 @@ public class WorkoutMetricsCalculator {
             // la fenetre declaree ne doit pas produire un temps en mouvement
             // superieur a la duree de la seance.
             movingDurationSeconds = Math.min(track.movingSeconds, durationSeconds);
-            maxSpeedMps = track.maxSpeedMps;
+            maxSpeedMps = track.maxSpeedMps();
             elevationGainMeters = track.elevationGainMeters;
         } else {
             // Seance sans GPS (tapis, salle, oubli d'autorisation) : on retombe
@@ -216,24 +227,26 @@ public class WorkoutMetricsCalculator {
                 if (segmentSpeedMps >= MOVING_SPEED_THRESHOLD_MPS) {
                     track.movingSeconds += segmentSeconds;
                 }
-                // Le pic de vitesse ignore les segments dont le deplacement tient
-                // dans l'incertitude du GPS. Sans ce garde-fou, un seul point mal
-                // localise suffit : une marche du 11 aout 2026 affichait 23,5 km/h
-                // alors que le capteur du telephone n'avait jamais depasse
-                // 6,2 km/h — un point a 22,8 metres de precision avait produit un
-                // saut de vingt metres en trois secondes.
+                // Le pic tire des positions ignore les segments dont le
+                // deplacement tient dans l'incertitude du GPS. Sans ce
+                // garde-fou, un seul point mal localise suffit : une marche du
+                // 11 aout 2026 affichait 23,5 km/h — un point a 22,8 metres de
+                // precision avait produit un saut de vingt metres en trois
+                // secondes.
                 //
                 // La distance, elle, continue de cumuler ces segments : les
                 // ecarts s'y compensent sur la duree, alors qu'un maximum retient
                 // le pire d'entre eux pour toujours.
                 if (segmentMeters > noiseFloorMeters(previous, current)) {
-                    track.maxSpeedMps = Math.max(track.maxSpeedMps, segmentSpeedMps);
+                    track.positionMaxMps = Math.max(track.positionMaxMps, segmentSpeedMps);
                 }
             }
 
             // Vitesse annoncee par le capteur, quand le telephone la fournit.
-            if (current.speed() != null && current.speed() > 0) {
-                track.maxSpeedMps = Math.max(track.maxSpeedMps, current.speed());
+            track.segments++;
+            if (current.speed() != null) {
+                track.sensorSamples++;
+                track.sensorMaxMps = Math.max(track.sensorMaxMps, current.speed());
             }
 
             if (previous.altitude() != null && current.altitude() != null) {
@@ -287,7 +300,41 @@ public class WorkoutMetricsCalculator {
     private static final class Track {
         private double distanceMeters;
         private long movingSeconds;
-        private double maxSpeedMps;
         private double elevationGainMeters;
+
+        /** Nombre de segments parcourus, soit le nombre de points moins un. */
+        private int segments;
+        /** Segments dont le point d'arrivee portait une vitesse capteur. */
+        private int sensorSamples;
+        private double sensorMaxMps;
+        private double positionMaxMps;
+
+        /**
+         * Pic retenu pour la seance.
+         *
+         * <p><strong>Le capteur prime sur les positions des qu'il couvre le
+         * trace.</strong> Sa mesure vient de l'effet Doppler, quand la vitesse
+         * tiree des positions n'est qu'une difference entre deux points
+         * bruites — et cette difference est d'autant plus fausse que les points
+         * sont rapproches. Mesure faite sur une vraie marche du 11 aout 2026,
+         * echantillonnee toutes les deux secondes avec quatre metres de
+         * precision : le capteur plafonnait a 6,2 km/h la ou les positions
+         * annoncaient 11,1 km/h. Marcher deux secondes deplace de 2,8 metres,
+         * trois metres de tremblement suffisent donc a doubler la vitesse
+         * apparente — un ecart qu'aucun seuil de bruit raisonnable ne rattrape,
+         * puisque le deplacement reel est du meme ordre que le bruit.
+         *
+         * <p>Les positions restent le repli quand le telephone ne dit rien : un
+         * pic imparfait vaut mieux qu'un pic absent. Elles reprennent aussi la
+         * main si le capteur, bien que present, n'a jamais annonce le moindre
+         * mouvement — certains appareils renvoient zero en permanence, et les
+         * croire effacerait le pic d'une seance qui a pourtant eu lieu.
+         */
+        private double maxSpeedMps() {
+            boolean sensorCoversTrack = segments > 0
+                    && sensorSamples >= SENSOR_COVERAGE_RATIO * segments
+                    && sensorMaxMps > 0;
+            return sensorCoversTrack ? sensorMaxMps : Math.max(sensorMaxMps, positionMaxMps);
+        }
     }
 }

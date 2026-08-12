@@ -208,4 +208,76 @@ class WorkoutMetricsCalculatorTest {
 
         assertThat(metrics.maxSpeedKmh()).isGreaterThan(30d);
     }
+
+    /**
+     * Le cas qui a motive la regle du capteur prioritaire, mesure sur une vraie
+     * marche : un point toutes les deux secondes, quatre metres de precision.
+     * Le deplacement reel — 2,8 m — est du meme ordre que le bruit, de sorte que
+     * les positions annoncent le double de la vitesse mesuree par le capteur.
+     * Aucun seuil de bruit ne les separe : il faut cesser de deriver le pic des
+     * positions quand le capteur, lui, a parle.
+     */
+    @Test
+    void prefere_la_vitesse_du_capteur_aux_positions_quand_il_couvre_le_trace() {
+        Instant instant = START;
+        double latitude = PARIS_LAT;
+        var track = new java.util.ArrayList<GpsPointRequest>();
+
+        for (int i = 0; i < 60; i++) {
+            track.add(new GpsPointRequest(
+                    latitude, PARIS_LON, null, 4.0,
+                    // Le capteur mesure 1,4 m/s tout du long, soit 5,04 km/h.
+                    1.4,
+                    instant));
+            // Marche reelle : 2,8 m en 2 s. Un point sur dix tremble et affiche
+            // 6,2 m — soit 11,2 km/h, au-dessus des quatre metres d'incertitude
+            // annoncee, donc retenu par le filtre de bruit.
+            latitude += METER_IN_DEGREES_LAT * (i % 10 == 0 ? 6.2 : 2.8);
+            instant = instant.plusSeconds(2);
+        }
+
+        WorkoutMetrics metrics = calculator.calculate(
+                SportType.WALK, START, START.plusSeconds(120), track, null, WEIGHT_KG);
+
+        // Sans la regle du capteur, les segments tremblants imposeraient
+        // 11,2 km/h. Avec elle, le pic retombe au niveau de ce que le capteur a
+        // mesure — ici sous la moyenne, qui sert alors de plancher.
+        assertThat(metrics.maxSpeedKmh()).isLessThan(7d);
+        assertThat(metrics.maxSpeedKmh()).isEqualTo(metrics.averageSpeedKmh());
+    }
+
+    /**
+     * Un capteur muet ne doit pas priver la seance de son pic : les positions
+     * reprennent la main, avec le filtre de bruit pour seul garde-fou.
+     */
+    @Test
+    void derive_le_pic_des_positions_quand_le_capteur_se_tait() {
+        List<GpsPointRequest> track = List.of(
+                new GpsPointRequest(PARIS_LAT, PARIS_LON, null, 4.0, null, START),
+                new GpsPointRequest(PARIS_LAT + METER_IN_DEGREES_LAT * 30, PARIS_LON, null, 4.0, null,
+                        START.plusSeconds(3)));
+
+        WorkoutMetrics metrics = calculator.calculate(
+                SportType.RIDE, START, START.plusSeconds(3), track, null, WEIGHT_KG);
+
+        assertThat(metrics.maxSpeedKmh()).isGreaterThan(30d);
+    }
+
+    /**
+     * Certains appareils renvoient une vitesse de zero en permanence. Les croire
+     * effacerait le pic d'une seance qui a pourtant eu lieu : dans ce cas les
+     * positions reprennent la main, capteur present ou non.
+     */
+    @Test
+    void ignore_un_capteur_qui_annonce_toujours_zero() {
+        List<GpsPointRequest> track = List.of(
+                new GpsPointRequest(PARIS_LAT, PARIS_LON, null, 4.0, 0.0, START),
+                new GpsPointRequest(PARIS_LAT + METER_IN_DEGREES_LAT * 30, PARIS_LON, null, 4.0, 0.0,
+                        START.plusSeconds(3)));
+
+        WorkoutMetrics metrics = calculator.calculate(
+                SportType.RIDE, START, START.plusSeconds(3), track, null, WEIGHT_KG);
+
+        assertThat(metrics.maxSpeedKmh()).isGreaterThan(30d);
+    }
 }
