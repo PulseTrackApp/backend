@@ -160,6 +160,37 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
 
     long countByUserId(UUID userId);
 
+    /** Seances d'un compte depuis une date : « s'en sert-il encore ? ». */
+    long countByUserIdAndStartedAtGreaterThanEqual(UUID userId, Instant from);
+
+    /**
+     * Distance et temps en mouvement cumules d'un compte.
+     *
+     * <p>Sommes en base et non chargement des seances : la fiche
+     * d'administration ne doit pas ramener l'historique entier pour afficher
+     * deux nombres. {@code coalesce} rend zero pour un compte sans seance, ce
+     * qui evite deux nuls a traiter cote appelant.
+     *
+     * <p>Projection nommee plutot qu'un {@code Object[]} : les alias sont lus
+     * par leur nom, si bien qu'inverser deux colonnes dans la requete ne peut
+     * pas inverser silencieusement une distance et une duree.
+     */
+    @Query("""
+            select coalesce(sum(w.distanceMeters), 0d) as distanceMeters,
+                   coalesce(sum(w.movingDurationSeconds), 0L) as movingDurationSeconds
+            from WorkoutSession w
+            where w.userId = :userId
+            """)
+    UserTotals sumTotalsOf(@Param("userId") UUID userId);
+
+    /** Cumuls d'un compte, tels que la fiche d'administration les affiche. */
+    interface UserTotals {
+
+        double getDistanceMeters();
+
+        long getMovingDurationSeconds();
+    }
+
     /**
      * Comptes ayant enregistre au moins une seance depuis une date, pour le
      * tableau de bord. {@code count(distinct)} en base plutot qu'un chargement

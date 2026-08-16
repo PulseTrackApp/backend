@@ -9,6 +9,7 @@ import com.pulsetrack.backend.admin.dto.AdminModuleResponse;
 import com.pulsetrack.backend.admin.dto.AdminStatsResponse;
 import com.pulsetrack.backend.admin.dto.AdminUserDetailResponse;
 import com.pulsetrack.backend.admin.dto.AdminUserResponse;
+import com.pulsetrack.backend.admin.dto.UpdateAccountStatusRequest;
 import com.pulsetrack.backend.admin.dto.UpdateModulesRequest;
 import com.pulsetrack.backend.admin.dto.UpdateRoleRequest;
 import com.pulsetrack.backend.admin.dto.UpdateSubscriptionRequest;
@@ -104,6 +105,25 @@ public class AdminController {
                                         @PathVariable UUID id,
                                         @Valid @RequestBody UpdateRoleRequest request) {
         return adminUsers.changeRole(id, request.role(), AuthenticatedUser.idOf(jwt));
+    }
+
+    /**
+     * Suspend ou rouvre un compte.
+     *
+     * <p>Une seule route pour les deux sens, avec l'etat vise dans le corps :
+     * rejouer l'appel ne peut pas produire un etat different de celui que
+     * l'administrateur a sous les yeux. Une bascule aveugle rouvrirait, sur une
+     * double soumission, ce qu'on venait de fermer.
+     *
+     * <p>A preferer a la suppression dans presque tous les cas : la suspension
+     * ferme l'acces sans rien detruire, et se defait.
+     */
+    @PutMapping("/users/{id}/status")
+    public AdminUserResponse changeStatus(@AuthenticationPrincipal Jwt jwt,
+                                          @PathVariable UUID id,
+                                          @Valid @RequestBody UpdateAccountStatusRequest request) {
+        return adminUsers.changeStatus(id, request.disabled(), request.reason(),
+                AuthenticatedUser.idOf(jwt));
     }
 
     @DeleteMapping("/users/{id}")

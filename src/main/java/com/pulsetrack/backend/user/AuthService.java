@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.pulsetrack.backend.access.AccessProperties;
 import com.pulsetrack.backend.access.ModuleAccessService;
 import com.pulsetrack.backend.common.error.ConflictException;
+import com.pulsetrack.backend.common.error.AccountDisabledException;
 import com.pulsetrack.backend.common.error.EmailNotVerifiedException;
 import com.pulsetrack.backend.common.error.InvalidRefreshTokenException;
 import com.pulsetrack.backend.config.SecurityProperties;
@@ -121,8 +122,9 @@ public class AuthService {
             throw new BadCredentialsException("Identifiants invalides");
         }
         // Apres la verification du mot de passe, et jamais avant : annoncer
-        // « adresse non verifiee » a qui ne connait pas le mot de passe
-        // revelerait l'existence du compte.
+        // « adresse non verifiee » ou « compte suspendu » a qui ne connait pas
+        // le mot de passe revelerait l'existence du compte.
+        requireEnabled(user);
         requireVerifiedEmail(user);
 
         return toResponse(user, profiles.existsByUserId(user.getId()));
@@ -148,8 +150,9 @@ public class AuthService {
                 .orElseThrow(() -> new InvalidRefreshTokenException("Compte introuvable."));
 
         // Le renouvellement est controle comme la connexion, sinon la session
-        // obtenue a l'inscription se prolongerait indefiniment et la
-        // verification ne serait jamais exigee de personne.
+        // obtenue a l'inscription se prolongerait indefiniment et ni la
+        // verification ni la suspension ne seraient jamais opposees a personne.
+        requireEnabled(user);
         requireVerifiedEmail(user);
 
         return toResponse(user, profiles.existsByUserId(user.getId()));
@@ -173,6 +176,24 @@ public class AuthService {
      *                                   configuration et que l'adresse du compte
      *                                   n'est pas confirmee
      */
+    /**
+     * Refuse une session a un compte suspendu.
+     *
+     * <p>Ferme la porte d'entree ; les jetons deja emis sont fermes ailleurs,
+     * par {@code DisabledAccountInterceptor} — sans lui, une suspension ne
+     * prendrait effet qu'a l'expiration du jeton d'acces, soit jusqu'a
+     * vingt-quatre heures plus tard.
+     */
+    private void requireEnabled(User user) {
+        if (!user.isDisabled()) {
+            return;
+        }
+        String reason = user.getDisabledReason();
+        throw new AccountDisabledException(reason == null || reason.isBlank()
+                ? "Ce compte a été suspendu."
+                : "Ce compte a été suspendu : " + reason);
+    }
+
     private void requireVerifiedEmail(User user) {
         if (verifiedEmailRequired && !user.isEmailVerified()) {
             throw new EmailNotVerifiedException(

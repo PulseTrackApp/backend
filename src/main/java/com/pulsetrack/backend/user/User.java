@@ -53,6 +53,20 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
 
+    /**
+     * Date de suspension ; {@code null} pour un compte actif.
+     *
+     * <p>Une date plutot qu'un booleen : « depuis quand » est la premiere
+     * question qu'on se pose devant un compte ferme, et un booleen ne sait pas y
+     * repondre.
+     */
+    @Column(name = "disabled_at")
+    private Instant disabledAt;
+
+    /** Pourquoi le compte a ete suspendu. Une suspension muette est indefendable. */
+    @Column(name = "disabled_reason")
+    private String disabledReason;
+
     /** Requis par JPA. */
     protected User() {
     }
@@ -122,5 +136,40 @@ public class User {
      */
     public void markEmailVerified() {
         this.emailVerified = true;
+    }
+
+    public boolean isDisabled() {
+        return disabledAt != null;
+    }
+
+    public Instant getDisabledAt() {
+        return disabledAt;
+    }
+
+    public String getDisabledReason() {
+        return disabledReason;
+    }
+
+    /**
+     * Suspend le compte.
+     *
+     * <p>Rien n'est efface : la suspension ferme l'acces et se defait. C'est ce
+     * qui la distingue de la suppression, definitive et sans retour.
+     *
+     * <p>Une nouvelle suspension sur un compte deja suspendu ne repousse pas la
+     * date : ce serait effacer la seule information qui compte, depuis quand.
+     * Seule la raison se corrige.
+     */
+    public void disable(String reason, Instant now) {
+        if (disabledAt == null) {
+            this.disabledAt = now;
+        }
+        this.disabledReason = reason;
+    }
+
+    /** Rouvre le compte, raison comprise : elle ne concerne plus rien. */
+    public void enable() {
+        this.disabledAt = null;
+        this.disabledReason = null;
     }
 }

@@ -4,6 +4,8 @@ import com.pulsetrack.backend.billing.SubscriptionInterceptor;
 import com.pulsetrack.backend.billing.SubscriptionService;
 import com.pulsetrack.backend.client.ClientProperties;
 import com.pulsetrack.backend.client.ClientVersionInterceptor;
+import com.pulsetrack.backend.user.AccountStatusService;
+import com.pulsetrack.backend.user.DisabledAccountInterceptor;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -27,14 +29,24 @@ public class GateWebConfig implements WebMvcConfigurer {
 
     private final ClientProperties clientProperties;
     private final SubscriptionService subscriptions;
+    private final AccountStatusService accountStatuses;
 
-    public GateWebConfig(ClientProperties clientProperties, SubscriptionService subscriptions) {
+    public GateWebConfig(ClientProperties clientProperties,
+                         SubscriptionService subscriptions,
+                         AccountStatusService accountStatuses) {
         this.clientProperties = clientProperties;
         this.subscriptions = subscriptions;
+        this.accountStatuses = accountStatuses;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // En premier : un compte suspendu doit l'apprendre, et non s'entendre
+        // dire de mettre a jour son application ou de payer — deux corrections
+        // qui ne rouvriraient rien.
+        registry.addInterceptor(new DisabledAccountInterceptor(accountStatuses))
+                .addPathPatterns("/api/**")
+                .order(5);
         registry.addInterceptor(new ClientVersionInterceptor(clientProperties))
                 .addPathPatterns("/api/**")
                 .order(10);

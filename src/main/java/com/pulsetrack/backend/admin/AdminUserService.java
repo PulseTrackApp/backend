@@ -23,8 +23,11 @@ import com.pulsetrack.backend.access.UserModuleRepository;
 import com.pulsetrack.backend.admin.dto.AdminStatsResponse;
 import com.pulsetrack.backend.admin.dto.AdminUserDetailResponse;
 import com.pulsetrack.backend.admin.dto.AdminUserResponse;
+import com.pulsetrack.backend.billing.SubscriptionService;
 import com.pulsetrack.backend.common.error.BusinessRuleException;
 import com.pulsetrack.backend.common.error.ResourceNotFoundException;
+import com.pulsetrack.backend.user.AccountStatusService;
+import com.pulsetrack.backend.user.RefreshTokenService;
 import com.pulsetrack.backend.user.Role;
 import com.pulsetrack.backend.user.User;
 import com.pulsetrack.backend.user.UserRepository;
@@ -57,15 +60,24 @@ public class AdminUserService {
     private final UserModuleRepository userModules;
     private final ModuleAccessService moduleAccess;
     private final WorkoutSessionRepository workouts;
+    private final SubscriptionService subscriptions;
+    private final RefreshTokenService refreshTokens;
+    private final AccountStatusService accountStatuses;
 
     public AdminUserService(UserRepository users,
                             UserModuleRepository userModules,
                             ModuleAccessService moduleAccess,
-                            WorkoutSessionRepository workouts) {
+                            WorkoutSessionRepository workouts,
+                            SubscriptionService subscriptions,
+                            RefreshTokenService refreshTokens,
+                            AccountStatusService accountStatuses) {
         this.users = users;
         this.userModules = userModules;
         this.moduleAccess = moduleAccess;
         this.workouts = workouts;
+        this.subscriptions = subscriptions;
+        this.refreshTokens = refreshTokens;
+        this.accountStatuses = accountStatuses;
     }
 
     /**
@@ -87,13 +99,84 @@ public class AdminUserService {
         return page.map(user -> toResponse(user, modulesByUser.getOrDefault(user.getId(), List.of())));
     }
 
+    /**
+     * Fiche complete : identite, droits, usage et abonnement.
+     *
+     * <p>Rassembler l'abonnement ici plutot que de le laisser a un second appel
+     * n'est pas qu'une commodite : une fiche montree en deux morceaux se lit un
+     * jour a moitie chargee, et l'on decide alors sur un etat qu'on croit voir.
+     */
     @Transactional(readOnly = true)
     public AdminUserDetailResponse detail(UUID userId) {
         User user = require(userId);
+        Instant now = Instant.now();
+        WorkoutSessionRepository.UserTotals totals = workouts.sumTotalsOf(userId);
+
+        AdminUserDetailResponse.AdminUsageResponse usage =
+                new AdminUserDetailResponse.AdminUsageResponse(
+                        workouts.countByUserId(userId),
+                        workouts.countByUserIdAndStartedAtGreaterThanEqual(userId, now.minus(RECENT)),
+                        workouts.countByUserIdAndStartedAtGreaterThanEqual(userId, now.minus(MONTHLY)),
+                        totals == null ? 0 : totals.getDistanceMeters(),
+                        totals == null ? 0 : totals.getMovingDurationSeconds(),
+                        workouts.findFirstStartedAt(userId),
+                        workouts.findLastStartedAt(userId));
+
         return new AdminUserDetailResponse(
                 toResponse(user, modulesOf(List.of(userId)).getOrDefault(userId, List.of())),
-                workouts.countByUserId(userId),
-                workouts.findLastStartedAt(userId));
+                usage,
+                subscriptions.describe(userId));
+    }
+
+    /**
+     * Suspend ou rouvre un compte.
+     *
+     * <p>La suspension ferme l'acces sans rien detruire, et se defait — c'est ce
+     * qui la distingue de la suppression. Elle prend effet immediatement, y
+     * compris pour les jetons deja emis : les sessions en cours sont revoquees
+     * et le cache d'etat est oublie, sans quoi le compte continuerait de
+     * fonctionner jusqu'a l'expiration de son jeton, soit une journee entiere.
+     *
+     * @throws BusinessRuleException si l'administrateur vise son propre compte —
+     *                               il se fermerait la porte qui permet de la
+     *                               rouvrir — ou s'il suspend sans donner de
+     *                               raison
+     */
+    @Transactional
+    public AdminUserResponse changeStatus(UUID userId,
+                                          boolean disabled,
+                                          String reason,
+                                          UUID actingAdminId) {
+        if (userId.equals(actingAdminId)) {
+            throw new BusinessRuleException("Un administrateur ne peut pas suspendre son propre compte.");
+        }
+
+        String trimmed = reason == null ? "" : reason.strip();
+        if (disabled && trimmed.isEmpty()) {
+            throw new BusinessRuleException(
+                    "Indique la raison de la suspension : sans elle, la décision devient inexplicable.");
+        }
+
+        User user = require(userId);
+        if (disabled) {
+            user.disable(trimmed, Instant.now());
+        } else {
+            user.enable();
+        }
+        users.save(user);
+
+        // Apres l'ecriture, et dans cet ordre : couper les renouvellements, puis
+        // oublier l'etat en cache. L'inverse laisserait une lecture concurrente
+        // remettre en cache l'etat d'avant.
+        if (disabled) {
+            refreshTokens.revokeAllFor(userId);
+        }
+        accountStatuses.forget(userId);
+
+        log.info("Administrateur {} a {} le compte {}{}", actingAdminId,
+                disabled ? "suspendu" : "rouvert", userId,
+                disabled ? " (" + trimmed + ")" : "");
+        return toResponse(user, modulesOf(List.of(userId)).getOrDefault(userId, List.of()));
     }
 
     @Transactional
@@ -205,7 +288,6 @@ public class AdminUserService {
     }
 
     private static AdminUserResponse toResponse(User user, List<AppModule> modules) {
-        return new AdminUserResponse(user.getId(), user.getEmail(), user.getRole(),
-                user.isEmailVerified(), user.getCreatedAt(), modules);
+        return AdminUserResponse.of(user, modules);
     }
 }

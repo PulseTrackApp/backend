@@ -187,6 +187,18 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
+     * Compte suspendu par un administrateur.
+     *
+     * <p>Un {@code type} a lui : le client doit pouvoir distinguer « ton compte
+     * est fermé » d'« une rubrique est fermée » ou de « ta session a expiré »,
+     * qui partagent le meme code HTTP et appellent trois reactions differentes.
+     */
+    @ExceptionHandler(AccountDisabledException.class)
+    ProblemDetail handleAccountDisabled(AccountDisabledException ex) {
+        return problem(HttpStatus.FORBIDDEN, "Compte suspendu", ex.getMessage(), "account-disabled");
+    }
+
+    /**
      * Valeur temporelle irrecevable, typiquement un fuseau horaire inconnu passe
      * en parametre de requete. C'est une faute du client, pas du serveur : sans
      * ce cas, {@code ZoneId.of("Mars/Olympus")} finirait en 500.
