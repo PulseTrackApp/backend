@@ -185,9 +185,15 @@ pulsetrack:
     # l'application mobile utilisable seule — enregistrer ses seances, se peser,
     # se fixer des objectifs et recevoir ses rappels.
     #
-    # Le reste (STATS, WEEKLY_SUMMARY, COACH, EXPORT) se merite : l'administrateur
-    # l'accorde compte par compte. COACH est le plus sensible des quatre, chaque
-    # echange etant un appel facture a Gemini.
+    # Le reste (STATS, COACH, EXPORT) se merite : l'administrateur l'accorde
+    # compte par compte. COACH est le plus sensible des trois, chaque echange
+    # etant un appel facture a Gemini.
+    #
+    # WEEKLY_SUMMARY est entre dans le socle le 16 aout 2026, sur decision de
+    # Nicolas. La raison est concrete : le cumul de kilometres de la semaine, sur
+    # le tableau de bord, n'a pas d'autre source. Ferme, l'ecran d'accueil d'un
+    # compte neuf affiche zero kilometre a quelqu'un qui vient justement de
+    # courir — le pire premier contact possible pour une application de sport.
     default-modules:
       - 'WORKOUTS'
       # Parcours rejouables, defis et note font partie du meme geste que
@@ -199,6 +205,7 @@ pulsetrack:
       - 'BODY_CHECKINS'
       - 'GOALS'
       - 'RATING'
+      - 'WEEKLY_SUMMARY'
       - 'PUSH'
     # Compromis entre une requete par appel authentifie et le delai avant qu'un
     # retrait de droit prenne effet. Une minute : assez court pour qu'un
