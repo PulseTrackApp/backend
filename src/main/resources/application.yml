@@ -257,8 +257,18 @@ pulsetrack:
     # retroactivement aux comptes existants — c'est voulu, ils ont deja eu le
     # temps d'essayer.
     trial-days: ${PULSETRACK_TRIAL_DAYS:30}
-    # PRIX D'ATTENTE, A RELIRE AVANT TOUTE PUBLICATION. Ils vivent ici et non
-    # dans le code precisement pour se corriger sans recompiler.
+    # PRIX D'ATTENTE, A RELIRE AVANT TOUTE PUBLICATION.
+    #
+    # CE BLOC N'EST PLUS QU'UNE AMORCE. Depuis V13 le catalogue vit en base et
+    # s'edite depuis l'application d'administration. Ce qui suit n'est recopie
+    # qu'au premier demarrage sur une base ou la table `billing_plans` est vide ;
+    # ensuite la base fait foi et ce bloc n'est plus relu. Corriger un prix ici
+    # sur une base deja amorcee n'aura donc aucun effet — c'est voulu, sans quoi
+    # chaque redemarrage ecraserait les prix corriges a l'ecran.
+    #
+    # L'assistant de coaching ne figure volontairement dans aucune offre : il
+    # tourne sur une cle personnelle, n'est ouvert a personne d'autre, et n'est
+    # donc pas vendu. Voir SubscriptionInterceptor.FREE_PREFIXES.
     plans:
       - code: 'MONTHLY'
         name: 'Mensuel'
@@ -272,7 +282,7 @@ pulsetrack:
           - 'Séances illimitées et trace GPS'
           - 'Défis, parcours et records'
           - 'Statistiques et bilan hebdomadaire'
-          - 'Assistant de coaching'
+          - 'Notes, encouragements et objectifs'
       - code: 'YEARLY'
         name: 'Annuel'
         description: 'Deux mois offerts par rapport au mensuel.'

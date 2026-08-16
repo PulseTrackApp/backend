@@ -40,13 +40,16 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptions;
     private final UserRepository users;
     private final BillingProperties properties;
+    private final BillingCatalog catalog;
 
     public SubscriptionService(SubscriptionRepository subscriptions,
                                UserRepository users,
-                               BillingProperties properties) {
+                               BillingProperties properties,
+                               BillingCatalog catalog) {
         this.subscriptions = subscriptions;
         this.users = users;
         this.properties = properties;
+        this.catalog = catalog;
     }
 
     /** Vrai si le compte a le droit d'utiliser l'application aujourd'hui. */
@@ -133,34 +136,24 @@ public class SubscriptionService {
 
     /** Catalogue affiche par l'ecran de tarifs. */
     public List<PlanResponse> plans() {
-        List<BillingProperties.Plan> configured = properties.plans();
-        if (configured == null) {
-            return List.of();
-        }
-        return configured.stream().map(this::toResponse).toList();
+        return catalog.catalogue();
     }
 
-    /**
-     * Offre a mettre en avant dans le refus de paiement. La premiere marquee
-     * comme telle, ou la premiere du catalogue a defaut : un ecran de paiement
-     * sans aucun prix n'aide personne.
-     */
+    /** Offre a mettre en avant dans le refus de paiement. */
     public Optional<PlanResponse> highlightedPlan() {
-        List<PlanResponse> all = plans();
-        return all.stream().filter(PlanResponse::highlighted).findFirst()
-                .or(() -> all.stream().findFirst());
+        return catalog.highlighted();
     }
 
     public boolean isEnforced() {
         return properties.enforced();
     }
 
-    private Optional<BillingProperties.Plan> planOf(String code) {
-        List<BillingProperties.Plan> configured = properties.plans();
-        if (configured == null) {
-            return Optional.empty();
-        }
-        return configured.stream().filter(plan -> plan.code().equals(code)).findFirst();
+    public int trialDays() {
+        return properties.trialDays();
+    }
+
+    private Optional<PlanResponse> planOf(String code) {
+        return catalog.find(code);
     }
 
     /**
@@ -180,34 +173,6 @@ public class SubscriptionService {
 
     private LocalDate today() {
         return LocalDate.now(ZoneId.systemDefault());
-    }
-
-    private PlanResponse toResponse(BillingProperties.Plan plan) {
-        return new PlanResponse(
-                plan.code(),
-                plan.name(),
-                plan.description(),
-                plan.priceAmount(),
-                plan.currency(),
-                priceLabelOf(plan),
-                plan.period(),
-                plan.availability(),
-                plan.highlighted(),
-                plan.features() == null ? List.of() : List.copyOf(plan.features()));
-    }
-
-    /**
-     * Prix mis en forme cote serveur, pour qu'Android et iOS affichent le meme
-     * texte et que la devise ne se retrouve pas codee en dur dans deux clients.
-     */
-    private String priceLabelOf(BillingProperties.Plan plan) {
-        String amount = Wording.decimal(plan.priceAmount(), 0);
-        String suffix = switch (plan.period()) {
-            case MONTHLY -> " / mois";
-            case YEARLY -> " / an";
-            case LIFETIME -> " une fois";
-        };
-        return amount + " " + plan.currency() + suffix;
     }
 
     private String headlineOf(SubscriptionStatus status) {

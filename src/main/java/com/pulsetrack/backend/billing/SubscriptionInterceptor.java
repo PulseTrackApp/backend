@@ -47,6 +47,13 @@ public class SubscriptionInterceptor implements HandlerInterceptor {
             "/api/v1/me/password",
             // Portabilite des donnees : elle ne se monnaye pas.
             "/api/v1/me/export",
+            // L'assistant de coaching n'entre pas dans l'offre payante. Ce n'est
+            // pas une faveur : il tourne sur une cle personnelle, il n'est ouvert
+            // a personne d'autre, et il n'est donc pas vendu. Son acces est
+            // gouverne par le module COACH — ferme par defaut — et non par le
+            // paiement. Le laisser derriere le mur reviendrait a faire payer une
+            // fonction que le catalogue ne promet pas.
+            "/api/v1/me/coach",
             "/actuator");
 
     /** Suppression de compte : {@code DELETE /api/v1/me}, chemin exact. */
