@@ -2,16 +2,20 @@ package com.pulsetrack.backend.workout;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.pulsetrack.backend.achievement.SportPerformanceRow;
 import com.pulsetrack.backend.common.domain.SportType;
+import com.pulsetrack.backend.route.RouteAttemptStats;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -86,6 +90,62 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
     List<WorkoutStatsRow> statsRowsBetween(@Param("userId") UUID userId,
                                            @Param("from") Instant from,
                                            @Param("to") Instant to);
+
+    /**
+     * Seances d'un sport en projection legere, pour chercher un record.
+     *
+     * <p>Sans le trace : juger un record ne demande pas de charger des milliers
+     * de points, et le faire rendrait l'enregistrement d'une seance de plus en
+     * plus couteux a mesure que l'historique grandit.
+     */
+    @Query("""
+            select new com.pulsetrack.backend.achievement.SportPerformanceRow(
+                w.id, w.startedAt, w.distanceMeters, w.movingDurationSeconds,
+                w.averagePaceSecondsPerKm, w.elevationGainMeters)
+            from WorkoutSession w
+            where w.userId = :userId
+              and w.sportType = :sport
+            """)
+    List<SportPerformanceRow> performancesOf(@Param("userId") UUID userId,
+                                             @Param("sport") SportType sport);
+
+    /**
+     * Sports reellement pratiques par ce compte, pour ne pas afficher une
+     * rubrique de records vide sur les trois autres.
+     */
+    @Query("select distinct w.sportType from WorkoutSession w where w.userId = :userId order by w.sportType")
+    List<SportType> sportsPracticedBy(@Param("userId") UUID userId);
+
+    /**
+     * Tentatives sur un parcours, de la plus rapide a la plus lente.
+     *
+     * <p>Le classement se fait sur le temps <strong>en mouvement</strong> et non
+     * sur la duree totale : quelqu'un qui s'arrete lacer sa chaussure au milieu
+     * d'un circuit n'a pas couru plus lentement.
+     */
+    List<WorkoutSession> findByUserIdAndRouteIdOrderByMovingDurationSecondsAsc(UUID userId, UUID routeId);
+
+    /**
+     * Tentatives resumees pour plusieurs parcours d'un coup.
+     *
+     * <p>Une requete pour toute la page de parcours, la ou un comptage par
+     * parcours ferait vingt et un allers-retours.
+     */
+    @Query("""
+            select new com.pulsetrack.backend.route.RouteAttemptStats(
+                w.routeId, count(w), min(w.movingDurationSeconds), max(w.startedAt))
+            from WorkoutSession w
+            where w.userId = :userId
+              and w.routeId in :routeIds
+            group by w.routeId
+            """)
+    List<RouteAttemptStats> attemptStatsOf(@Param("userId") UUID userId,
+                                           @Param("routeIds") Collection<UUID> routeIds);
+
+    /** Detache les seances d'un parcours supprime, sans toucher aux seances. */
+    @Modifying
+    @Query("update WorkoutSession w set w.routeId = null where w.userId = :userId and w.routeId = :routeId")
+    void detachFromRoute(@Param("userId") UUID userId, @Param("routeId") UUID routeId);
 
     /**
      * Date de la toute premiere seance, point de depart de la periode

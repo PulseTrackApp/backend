@@ -27,7 +27,7 @@ class GoalProgressCalculatorTest {
     @Test
     void mesure_un_objectif_de_distance_hebdomadaire() {
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.WEEKLY_DISTANCE, 20), WEEK, null, null);
+                goal(GoalType.WEEKLY_DISTANCE, 20), WEEK, null, null, 1.0);
 
         assertThat(progress.unit()).isEqualTo("km");
         assertThat(progress.currentValue()).isEqualTo(12.0);
@@ -39,7 +39,7 @@ class GoalProgressCalculatorTest {
     @Test
     void mesure_un_objectif_en_nombre_de_seances() {
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.WEEKLY_SESSIONS, 4), WEEK, null, null);
+                goal(GoalType.WEEKLY_SESSIONS, 4), WEEK, null, null, 1.0);
 
         assertThat(progress.currentValue()).isEqualTo(3.0);
         assertThat(progress.remaining()).isEqualTo(1.0);
@@ -49,7 +49,7 @@ class GoalProgressCalculatorTest {
     @Test
     void convertit_les_secondes_en_minutes_pour_un_objectif_de_duree() {
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.WEEKLY_DURATION, 60), WEEK, null, null);
+                goal(GoalType.WEEKLY_DURATION, 60), WEEK, null, null, 1.0);
 
         // 4 500 s = 75 min, soit 125 % d'un objectif de 60 min
         assertThat(progress.currentValue()).isEqualTo(75.0);
@@ -61,7 +61,7 @@ class GoalProgressCalculatorTest {
     @Test
     void ne_plafonne_pas_le_pourcentage_a_cent() {
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.WEEKLY_CALORIES, 600), WEEK, null, null);
+                goal(GoalType.WEEKLY_CALORIES, 600), WEEK, null, null, 1.0);
 
         // Depasser son objectif merite d'etre affiche tel quel.
         assertThat(progress.completionPercent()).isEqualTo(150.0);
@@ -71,7 +71,7 @@ class GoalProgressCalculatorTest {
     void mesure_la_progression_vers_un_poids_cible_a_perdre() {
         // Depart 80 kg, cible 75 kg, actuellement 78 kg : 2 kg sur 5, soit 40 %.
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.TARGET_WEIGHT, 75), WEEK, 80.0, 78.0);
+                goal(GoalType.TARGET_WEIGHT, 75), WEEK, 80.0, 78.0, 1.0);
 
         assertThat(progress.unit()).isEqualTo("kg");
         assertThat(progress.currentValue()).isEqualTo(78.0);
@@ -83,7 +83,7 @@ class GoalProgressCalculatorTest {
     @Test
     void marque_atteint_un_poids_cible_franchi() {
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.TARGET_WEIGHT, 75), WEEK, 80.0, 74.5);
+                goal(GoalType.TARGET_WEIGHT, 75), WEEK, 80.0, 74.5, 1.0);
 
         assertThat(progress.achieved()).isTrue();
         assertThat(progress.completionPercent()).isEqualTo(110.0);
@@ -93,7 +93,7 @@ class GoalProgressCalculatorTest {
     void gere_un_poids_cible_a_prendre() {
         // Depart 60 kg, cible 65 kg, actuellement 62 kg : 2 kg sur 5, soit 40 %.
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.TARGET_WEIGHT, 65), WEEK, 60.0, 62.0);
+                goal(GoalType.TARGET_WEIGHT, 65), WEEK, 60.0, 62.0, 1.0);
 
         assertThat(progress.completionPercent()).isEqualTo(40.0);
         assertThat(progress.achieved()).isFalse();
@@ -102,7 +102,7 @@ class GoalProgressCalculatorTest {
     @Test
     void n_invente_pas_de_pourcentage_sans_aucune_pesee() {
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.TARGET_WEIGHT, 75), WEEK, null, null);
+                goal(GoalType.TARGET_WEIGHT, 75), WEEK, null, null, 1.0);
 
         assertThat(progress.currentValue()).isNull();
         assertThat(progress.completionPercent()).isNull();
@@ -113,7 +113,7 @@ class GoalProgressCalculatorTest {
     void ne_renvoie_pas_de_pourcentage_negatif_si_le_poids_s_eloigne() {
         // Depart 80 kg, cible 75, mais on est remonte a 82 : progression 0, pas -40 %.
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.TARGET_WEIGHT, 75), WEEK, 80.0, 82.0);
+                goal(GoalType.TARGET_WEIGHT, 75), WEEK, 80.0, 82.0, 1.0);
 
         assertThat(progress.completionPercent()).isZero();
         assertThat(progress.remaining()).isEqualTo(7.0);
@@ -126,7 +126,7 @@ class GoalProgressCalculatorTest {
         WorkoutTotals.Normalized empty = new WorkoutTotals(null, null, null, null, null).orZero();
 
         GoalProgressResponse progress = calculator.progressOf(
-                goal(GoalType.WEEKLY_DISTANCE, 20), empty, null, null);
+                goal(GoalType.WEEKLY_DISTANCE, 20), empty, null, null, 1.0);
 
         assertThat(progress.currentValue()).isZero();
         assertThat(progress.remaining()).isEqualTo(20.0);

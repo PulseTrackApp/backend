@@ -4,14 +4,18 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.pulsetrack.backend.bodycheckin.BodyCheckInService;
 import com.pulsetrack.backend.goal.GoalService;
 import com.pulsetrack.backend.summary.dto.GoalProgressResponse;
 import com.pulsetrack.backend.summary.dto.WeeklySummaryResponse;
 import com.pulsetrack.backend.workout.WorkoutSessionRepository;
+import com.pulsetrack.backend.workout.WorkoutStatsRow;
 import com.pulsetrack.backend.workout.WorkoutTotals;
 
 import org.springframework.stereotype.Service;
@@ -39,17 +43,20 @@ public class WeeklySummaryService {
     private final BodyCheckInService bodyCheckInService;
     private final GoalProgressCalculator goalProgressCalculator;
     private final ActivityStreakCalculator streakCalculator;
+    private final WeeklyAppreciator appreciator;
 
     public WeeklySummaryService(WorkoutSessionRepository sessions,
                                 GoalService goalService,
                                 BodyCheckInService bodyCheckInService,
                                 GoalProgressCalculator goalProgressCalculator,
-                                ActivityStreakCalculator streakCalculator) {
+                                ActivityStreakCalculator streakCalculator,
+                                WeeklyAppreciator appreciator) {
         this.sessions = sessions;
         this.goalService = goalService;
         this.bodyCheckInService = bodyCheckInService;
         this.goalProgressCalculator = goalProgressCalculator;
         this.streakCalculator = streakCalculator;
+        this.appreciator = appreciator;
     }
 
     /**
@@ -66,6 +73,9 @@ public class WeeklySummaryService {
 
         WorkoutTotals.Normalized current = totalsOfWeek(userId, monday, zone);
         WorkoutTotals.Normalized previous = totalsOfWeek(userId, previousMonday, zone);
+        double elapsed = elapsedFractionOf(monday, zone);
+
+        List<GoalProgressResponse> goals = goalProgress(userId, current, elapsed);
 
         return new WeeklySummaryResponse(
                 monday,
@@ -77,8 +87,65 @@ public class WeeklySummaryService {
                 current.caloriesBurned(),
                 current.elevationGainMeters(),
                 compare(current, previous),
-                goalProgress(userId, current),
-                streak(userId, today, zone));
+                goals,
+                streak(userId, today, zone),
+                dailyBreakdown(userId, monday, zone),
+                appreciator.appreciate(current, previous, goals, elapsed));
+    }
+
+    /**
+     * Part de la semaine deja ecoulee, de 0 a 1.
+     *
+     * <p>C'est la reference contre laquelle un avancement se juge : 40 % d'un
+     * objectif le mardi est en avance, le samedi c'est en retard. Le calcul se
+     * fait a la seconde et non a la journee, sans quoi le lundi matin
+     * afficherait deja un septieme de semaine consommee.
+     *
+     * <p>Une semaine passee vaut 1, une semaine future 0.
+     */
+    private double elapsedFractionOf(LocalDate monday, ZoneId zone) {
+        Instant start = monday.atStartOfDay(zone).toInstant();
+        Instant end = monday.plusWeeks(1).atStartOfDay(zone).toInstant();
+        Instant now = Instant.now();
+
+        if (!now.isAfter(start)) {
+            return 0;
+        }
+        if (!now.isBefore(end)) {
+            return 1;
+        }
+        return (double) (now.getEpochSecond() - start.getEpochSecond())
+                / (end.getEpochSecond() - start.getEpochSecond());
+    }
+
+    /**
+     * Les sept jours de la semaine, jours vides compris.
+     *
+     * <p>Les seances sont lues en projection legere puis regroupees en memoire
+     * plutot qu'agregees en base : une semaine en compte au plus quelques
+     * dizaines, et le decoupage en jours depend du fuseau de l'utilisateur, ce
+     * qui obligerait sinon a une seconde requete native.
+     */
+    private List<WeeklySummaryResponse.DayTotals> dailyBreakdown(UUID userId, LocalDate monday, ZoneId zone) {
+        Instant from = monday.atStartOfDay(zone).toInstant();
+        Instant to = monday.plusWeeks(1).atStartOfDay(zone).toInstant();
+
+        Map<LocalDate, List<WorkoutStatsRow>> byDay = sessions.statsRowsBetween(userId, from, to).stream()
+                .collect(Collectors.groupingBy(row -> row.startedAt().atZone(zone).toLocalDate()));
+
+        List<WeeklySummaryResponse.DayTotals> days = new ArrayList<>(7);
+        for (int offset = 0; offset < 7; offset++) {
+            LocalDate day = monday.plusDays(offset);
+            List<WorkoutStatsRow> rows = byDay.getOrDefault(day, List.of());
+            days.add(new WeeklySummaryResponse.DayTotals(
+                    day,
+                    day.getDayOfWeek(),
+                    rows.size(),
+                    round(rows.stream().mapToDouble(WorkoutStatsRow::distanceMeters).sum()),
+                    rows.stream().mapToLong(WorkoutStatsRow::movingDurationSeconds).sum(),
+                    rows.stream().mapToInt(WorkoutStatsRow::caloriesBurned).sum()));
+        }
+        return List.copyOf(days);
     }
 
     private WorkoutTotals.Normalized totalsOfWeek(UUID userId, LocalDate monday, ZoneId zone) {
@@ -104,13 +171,16 @@ public class WeeklySummaryService {
                 changePercent);
     }
 
-    private List<GoalProgressResponse> goalProgress(UUID userId, WorkoutTotals.Normalized totals) {
+    private List<GoalProgressResponse> goalProgress(UUID userId,
+                                                    WorkoutTotals.Normalized totals,
+                                                    double elapsedFraction) {
         BodyCheckInService.WeightRange weights = bodyCheckInService.weightRangeOf(userId).orElse(null);
         Double baseline = weights == null ? null : weights.baselineKg();
         Double currentWeight = weights == null ? null : weights.currentKg();
 
         return goalService.activeGoalsOf(userId).stream()
-                .map(goal -> goalProgressCalculator.progressOf(goal, totals, baseline, currentWeight))
+                .map(goal -> goalProgressCalculator.progressOf(
+                        goal, totals, baseline, currentWeight, elapsedFraction))
                 .toList();
     }
 

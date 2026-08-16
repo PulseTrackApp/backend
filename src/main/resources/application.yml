@@ -190,8 +190,15 @@ pulsetrack:
     # echange etant un appel facture a Gemini.
     default-modules:
       - 'WORKOUTS'
+      # Parcours rejouables, defis et note font partie du meme geste que
+      # l'enregistrement d'une seance : ils ne coutent rien au serveur et
+      # n'appellent aucun service tiers. Les fermer par defaut priverait un
+      # compte neuf de tout ce qui donne envie de revenir.
+      - 'ROUTES'
+      - 'CHALLENGES'
       - 'BODY_CHECKINS'
       - 'GOALS'
+      - 'RATING'
       - 'PUSH'
     # Compromis entre une requete par appel authentifie et le delai avant qu'un
     # retrait de droit prenne effet. Une minute : assez court pour qu'un
@@ -207,6 +214,10 @@ pulsetrack:
     weekly-checkin-cron: '0 0 19 * * SUN'
     # Dimanche 10h : alerte si les objectifs de la semaine sont loin d'etre atteints.
     effort-warning-cron: '0 0 10 * * SUN'
+    # Tous les jours a 8h : ferme les defis perimes et rappelle ceux dont la date
+    # limite approche. Le matin plutot que le soir — un rappel qui arrive apres la
+    # journee de sport n'appelle plus aucune action.
+    challenge-expiry-cron: '0 0 8 * * *'
 
 logging:
   level:

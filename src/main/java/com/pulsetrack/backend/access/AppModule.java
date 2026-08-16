@@ -22,8 +22,11 @@ import java.util.Optional;
 public enum AppModule {
 
     WORKOUTS("Seances et parcours", "/api/v1/workouts"),
+    ROUTES("Parcours enregistres", "/api/v1/me/routes"),
+    CHALLENGES("Defis chronometres", "/api/v1/me/challenges"),
     BODY_CHECKINS("Pesees", "/api/v1/me/body-checkins"),
     GOALS("Objectifs", "/api/v1/me/goals"),
+    RATING("Note et encouragements", "/api/v1/me/rating"),
     STATS("Statistiques", "/api/v1/me/stats"),
     WEEKLY_SUMMARY("Bilan hebdomadaire", "/api/v1/me/weekly-summary"),
     // Le fournisseur n'est nomme nulle part dans ce qui sort du serveur, y

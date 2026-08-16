@@ -50,6 +50,43 @@ class StatsAndExportApiIntegrationTest extends AbstractApiIntegrationTest {
                 .andExpect(jsonPath("$.bySport[0].distanceSharePercent").value(100.0));
     }
 
+    /**
+     * L'onglet « semaine » de l'ecran des performances. Meme code que le mois,
+     * seules les bornes changent — mais c'est justement la que se logeait le
+     * doute : la semaine commence-t-elle bien le lundi, et le dimanche est-il
+     * inclus ?
+     */
+    @Test
+    void agrege_la_semaine_du_lundi_au_dimanche_inclus() throws Exception {
+        String token = registerUser();
+        saveProfile(token, 70.0);
+
+        // 2026-06-08 est un lundi, 2026-06-14 le dimanche qui le suit.
+        createRun(token, LocalDate.of(2026, 6, 7));   // dimanche precedent : dehors
+        createRun(token, LocalDate.of(2026, 6, 8));   // lundi : dedans
+        createRun(token, LocalDate.of(2026, 6, 14));  // dimanche : dedans
+        createRun(token, LocalDate.of(2026, 6, 15));  // lundi suivant : dehors
+
+        mockMvc.perform(get("/api/v1/me/stats")
+                        .param("period", "WEEK")
+                        .param("reference", "2026-06-10")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period").value("WEEK"))
+                .andExpect(jsonPath("$.start").value("2026-06-08"))
+                .andExpect(jsonPath("$.end").value("2026-06-14"))
+                .andExpect(jsonPath("$.totals.sessionCount").value(2))
+                .andExpect(jsonPath("$.totals.distanceMeters").value(2000.0))
+                // Sept jours, jours vides compris.
+                .andExpect(jsonPath("$.series.length()").value(7))
+                .andExpect(jsonPath("$.series[0].totals.sessionCount").value(1))
+                .andExpect(jsonPath("$.series[1].totals.sessionCount").value(0))
+                .andExpect(jsonPath("$.series[6].totals.sessionCount").value(1))
+                // La semaine precedente sert de comparaison : la sortie du 7 juin.
+                .andExpect(jsonPath("$.previousPeriod.sessionCount").value(1))
+                .andExpect(jsonPath("$.records.longestDistanceMeters").value(1000.0));
+    }
+
     @Test
     void agrege_l_annee_par_mois() throws Exception {
         String token = registerUser();
@@ -187,13 +224,20 @@ class StatsAndExportApiIntegrationTest extends AbstractApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition",
                         org.hamcrest.Matchers.containsString("attachment")))
-                .andExpect(jsonPath("$.formatVersion").value(1))
+                .andExpect(jsonPath("$.formatVersion").value(2))
                 .andExpect(jsonPath("$.profile.displayName").value("Nicolas"))
                 .andExpect(jsonPath("$.workouts.length()").value(1))
                 // Le trace complet doit sortir : un parcours ampute n'est pas rejouable.
                 .andExpect(jsonPath("$.workouts[0].gpsPoints.length()").value(2))
+                // Les trophees partent avec les seances : sans eux, l'archive ne
+                // dirait pas ce que ces sorties ont represente.
+                .andExpect(jsonPath("$.workouts[0].achievements").isArray())
                 .andExpect(jsonPath("$.bodyCheckIns.length()").value(1))
-                .andExpect(jsonPath("$.goals.length()").value(1));
+                .andExpect(jsonPath("$.goals.length()").value(1))
+                // Un domaine oublie ici rendrait l'archive silencieusement
+                // incomplete : les deux nouveaux doivent y figurer, meme vides.
+                .andExpect(jsonPath("$.routes").isArray())
+                .andExpect(jsonPath("$.challenges").isArray());
     }
 
     @Test

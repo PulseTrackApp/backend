@@ -30,6 +30,15 @@ import jakarta.validation.constraints.Size;
  * @param distanceMeters distance declaree, prise en compte uniquement quand le
  *                       trace est absent ou trop court (seance en salle)
  * @param gpsPoints      trace du parcours ; peut etre vide ou absent
+ * @param routeId        parcours enregistre que cette sortie rejoue, facultatif.
+ *                       La reponse porte alors la comparaison avec les passages
+ *                       precedents. Le rattachement est <strong>declaratif</strong> :
+ *                       le serveur ne verifie pas que la trace suit le circuit,
+ *                       comparer deux traces bruitees coute cher et se trompe
+ * @param challengeId    defi que cette sortie regle, facultatif. Le defi est
+ *                       juge dans le meme appel et son verdict revient dans la
+ *                       reponse : un seul aller-retour a l'arrivee, ce qui compte
+ *                       quand le reseau revient a peine
  */
 public record CreateWorkoutRequest(
         UUID id,
@@ -41,5 +50,7 @@ public record CreateWorkoutRequest(
         Feeling feeling,
         @Size(max = 2000) String note,
         @Size(max = 50_000, message = "trace trop volumineux : 50 000 points maximum")
-        List<@Valid GpsPointRequest> gpsPoints) {
+        List<@Valid GpsPointRequest> gpsPoints,
+        UUID routeId,
+        UUID challengeId) {
 }

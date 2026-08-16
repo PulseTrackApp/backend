@@ -98,6 +98,21 @@ public class WorkoutSession {
     private Instant createdAt;
 
     /**
+     * Parcours rejoue, quand l'utilisateur a declare reprendre un circuit connu.
+     *
+     * <p>Identifiant nu et non association : la seance n'a jamais besoin du
+     * trace du parcours, et une {@code @ManyToOne} ferait charger un objet entier
+     * a chaque lecture d'historique. Le rattachement est purement declaratif, le
+     * serveur ne verifie pas que la trace suit reellement le circuit.
+     */
+    @Column(name = "route_id")
+    private UUID routeId;
+
+    /** Defi que cette seance vient regler, le cas echeant. */
+    @Column(name = "challenge_id")
+    private UUID challengeId;
+
+    /**
      * Le trace appartient a la seance : il est cree et supprime avec elle
      * ({@code orphanRemoval}), et n'a pas d'existence propre dans l'API.
      */
@@ -156,6 +171,23 @@ public class WorkoutSession {
         this.maxSpeedKmh = metrics.maxSpeedKmh();
         this.elevationGainMeters = metrics.elevationGainMeters();
         this.caloriesBurned = metrics.caloriesBurned();
+    }
+
+    /**
+     * Rattache la seance a un parcours rejoue et au defi qu'elle regle.
+     *
+     * <p>Hors du constructeur parce que les deux sont facultatifs et n'entrent
+     * pas dans le calcul des metriques : ajouter deux parametres nullables a une
+     * signature qui en compte deja dix aurait rendu chaque appel illisible.
+     */
+    void attachTo(UUID route, UUID challenge) {
+        this.routeId = route;
+        this.challengeId = challenge;
+    }
+
+    /** Detache la seance d'un parcours supprime, sans rien perdre d'autre. */
+    void detachFromRoute() {
+        this.routeId = null;
     }
 
     /**
@@ -239,6 +271,14 @@ public class WorkoutSession {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public UUID getRouteId() {
+        return routeId;
+    }
+
+    public UUID getChallengeId() {
+        return challengeId;
     }
 
     public List<GpsPoint> getGpsPoints() {

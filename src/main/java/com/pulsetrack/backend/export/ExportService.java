@@ -4,11 +4,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.pulsetrack.backend.bodycheckin.BodyCheckInService;
+import com.pulsetrack.backend.challenge.ChallengeService;
 import com.pulsetrack.backend.coach.CoachService;
 import com.pulsetrack.backend.common.error.ResourceNotFoundException;
 import com.pulsetrack.backend.export.dto.UserDataExport;
 import com.pulsetrack.backend.goal.GoalService;
 import com.pulsetrack.backend.profile.ProfileService;
+import com.pulsetrack.backend.route.RouteService;
 import com.pulsetrack.backend.user.UserRepository;
 import com.pulsetrack.backend.workout.WorkoutService;
 
@@ -31,19 +33,25 @@ public class ExportService {
     private final BodyCheckInService bodyCheckInService;
     private final GoalService goalService;
     private final CoachService coachService;
+    private final RouteService routeService;
+    private final ChallengeService challengeService;
 
     public ExportService(UserRepository users,
                          ProfileService profileService,
                          WorkoutService workoutService,
                          BodyCheckInService bodyCheckInService,
                          GoalService goalService,
-                         CoachService coachService) {
+                         CoachService coachService,
+                         RouteService routeService,
+                         ChallengeService challengeService) {
         this.users = users;
         this.profileService = profileService;
         this.workoutService = workoutService;
         this.bodyCheckInService = bodyCheckInService;
         this.goalService = goalService;
         this.coachService = coachService;
+        this.routeService = routeService;
+        this.challengeService = challengeService;
     }
 
     /**
@@ -69,6 +77,8 @@ public class ExportService {
                 workoutService.exportAll(userId),
                 allCheckIns,
                 goalService.exportAll(userId),
-                coachService.exportAll(userId));
+                coachService.exportAll(userId),
+                routeService.exportAll(userId),
+                challengeService.exportAll(userId));
     }
 }

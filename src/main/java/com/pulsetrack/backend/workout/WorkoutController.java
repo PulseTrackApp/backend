@@ -1,8 +1,11 @@
 package com.pulsetrack.backend.workout;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
+import com.pulsetrack.backend.achievement.AchievementService;
+import com.pulsetrack.backend.achievement.dto.SportRecordsResponse;
 import com.pulsetrack.backend.common.domain.SportType;
 import com.pulsetrack.backend.common.security.AuthenticatedUser;
 import com.pulsetrack.backend.workout.dto.CreateWorkoutRequest;
@@ -37,9 +40,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class WorkoutController {
 
     private final WorkoutService workoutService;
+    private final AchievementService achievementService;
 
-    public WorkoutController(WorkoutService workoutService) {
+    public WorkoutController(WorkoutService workoutService, AchievementService achievementService) {
         this.workoutService = workoutService;
+        this.achievementService = achievementService;
     }
 
     /**
@@ -71,6 +76,25 @@ public class WorkoutController {
             @RequestParam(required = false) SportType sport,
             @PageableDefault(size = 20, sort = "startedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return workoutService.list(AuthenticatedUser.idOf(jwt), sport, pageable);
+    }
+
+    /**
+     * Records courants, sport par sport.
+     *
+     * <p>Declaree avant {@code /{id}} pour la lisibilite, mais l'ordre du fichier
+     * n'y change rien : Spring fait primer un segment litteral sur une variable
+     * de chemin, {@code /records} ne sera donc jamais pris pour un identifiant.
+     *
+     * <p>Route placee sous {@code /workouts} et non sous les statistiques a
+     * dessein : le module {@code STATS} est ferme par defaut, et les records
+     * doivent rester lisibles sur un compte neuf.
+     *
+     * @param sport un seul sport, ou tous ceux pratiques si le parametre est omis
+     */
+    @GetMapping("/records")
+    public List<SportRecordsResponse> records(@AuthenticationPrincipal Jwt jwt,
+                                              @RequestParam(required = false) SportType sport) {
+        return achievementService.recordsOf(AuthenticatedUser.idOf(jwt), sport);
     }
 
     @GetMapping("/{id}")

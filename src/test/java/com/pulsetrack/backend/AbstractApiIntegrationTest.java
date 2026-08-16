@@ -86,7 +86,7 @@ public abstract class AbstractApiIntegrationTest {
      * socle, explicite, dans leur {@code @TestPropertySource}.
      */
     public static final String ALL_MODULES = "pulsetrack.access.default-modules="
-            + "WORKOUTS,BODY_CHECKINS,GOALS,STATS,WEEKLY_SUMMARY,COACH,EXPORT,PUSH";
+            + "WORKOUTS,ROUTES,CHALLENGES,BODY_CHECKINS,GOALS,RATING,STATS,WEEKLY_SUMMARY,COACH,EXPORT,PUSH";
 
     @Autowired
     protected MockMvc mockMvc;

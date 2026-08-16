@@ -1,16 +1,25 @@
 package com.pulsetrack.backend.workout;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.pulsetrack.backend.achievement.AchievementDetector;
+import com.pulsetrack.backend.achievement.AchievementService;
+import com.pulsetrack.backend.achievement.SportBests;
+import com.pulsetrack.backend.achievement.dto.AchievementResponse;
+import com.pulsetrack.backend.challenge.ChallengeService;
+import com.pulsetrack.backend.challenge.dto.ChallengeResponse;
 import com.pulsetrack.backend.common.domain.SportType;
 import com.pulsetrack.backend.common.error.BusinessRuleException;
 import com.pulsetrack.backend.common.error.ConflictException;
 import com.pulsetrack.backend.common.error.ResourceNotFoundException;
 import com.pulsetrack.backend.profile.ProfileService;
+import com.pulsetrack.backend.route.RouteService;
+import com.pulsetrack.backend.route.dto.RouteComparisonResponse;
 import com.pulsetrack.backend.workout.dto.CreateWorkoutRequest;
 import com.pulsetrack.backend.workout.dto.GpsPointRequest;
 import com.pulsetrack.backend.workout.dto.GpsPointResponse;
@@ -35,13 +44,22 @@ public class WorkoutService {
     private final WorkoutSessionRepository sessions;
     private final WorkoutMetricsCalculator calculator;
     private final ProfileService profileService;
+    private final AchievementService achievementService;
+    private final RouteService routeService;
+    private final ChallengeService challengeService;
 
     public WorkoutService(WorkoutSessionRepository sessions,
                           WorkoutMetricsCalculator calculator,
-                          ProfileService profileService) {
+                          ProfileService profileService,
+                          AchievementService achievementService,
+                          RouteService routeService,
+                          ChallengeService challengeService) {
         this.sessions = sessions;
         this.calculator = calculator;
         this.profileService = profileService;
+        this.achievementService = achievementService;
+        this.routeService = routeService;
+        this.challengeService = challengeService;
     }
 
     /**
@@ -60,7 +78,10 @@ public class WorkoutService {
         if (id != null) {
             // Renvoi de la meme seance : on rend celle deja enregistree plutot
             // que d'en creer une seconde. C'est ce qui rend l'envoi rejouable
-            // apres une coupure reseau en fin de course.
+            // apres une coupure reseau en fin de course. Les trophees sont relus
+            // en base, donc identiques : les felicitations n'explosent pas deux
+            // fois, et ne se perdent pas si le premier envoi n'a jamais atteint
+            // l'ecran.
             Optional<WorkoutSession> already = sessions.findByIdAndUserId(id, userId);
             if (already.isPresent()) {
                 return new Recorded(toDetail(already.get()), false);
@@ -87,6 +108,17 @@ public class WorkoutService {
                 request.distanceMeters(),
                 weightKg);
 
+        // Un parcours inconnu est refuse avant tout enregistrement : mieux vaut
+        // une erreur claire qu'une seance rattachee dans le vide, qui ne
+        // remonterait dans aucun classement sans que personne comprenne pourquoi.
+        if (request.routeId() != null) {
+            routeService.requireOwned(userId, request.routeId());
+        }
+
+        // Les records d'AVANT cette seance, lus avant de l'enregistrer : une
+        // seance qui figure dans sa propre reference ne bat jamais rien.
+        SportBests previousBests = achievementService.bestsOf(userId, request.sportType());
+
         WorkoutSession session = new WorkoutSession(
                 id != null ? id : UUID.randomUUID(),
                 userId,
@@ -98,6 +130,7 @@ public class WorkoutService {
                 request.feeling(),
                 normalizeNote(request.note()),
                 Instant.now());
+        session.attachTo(request.routeId(), request.challengeId());
 
         for (int position = 0; position < track.size(); position++) {
             GpsPointRequest point = track.get(position);
@@ -111,7 +144,64 @@ public class WorkoutService {
                     point.recordedAt());
         }
 
-        return new Recorded(toDetail(sessions.save(session)), true);
+        // Le meilleur temps du parcours doit etre lu avant l'enregistrement, lui
+        // aussi : une fois la seance ecrite, elle serait sa propre reference.
+        Long previousRouteBest = request.routeId() == null
+                ? null
+                : routeService.bestDurationExcluding(userId, request.routeId(), session.getId());
+
+        WorkoutSession saved = sessions.save(session);
+
+        return new Recorded(toDetail(saved, previousBests, previousRouteBest, request.challengeId()), true);
+    }
+
+    /**
+     * Assemble ce que la sortie a change : records tombes, place sur le parcours,
+     * verdict du defi.
+     *
+     * <p>L'ordre compte. Les trophees sont graves d'abord, parce que le defi a
+     * besoin de savoir si un record est tombe : c'est ce qui transforme un echec
+     * de dix secondes en moment a feter plutot qu'en ecran rouge.
+     */
+    private WorkoutResponse toDetail(WorkoutSession saved,
+                                     SportBests previousBests,
+                                     Long previousRouteBest,
+                                     UUID challengeId) {
+
+        List<AchievementDetector.Detected> detected = new ArrayList<>(achievementService.detect(
+                previousBests,
+                new AchievementDetector.Candidate(
+                        saved.getSportType(),
+                        saved.getDistanceMeters(),
+                        saved.getMovingDurationSeconds(),
+                        saved.getAveragePaceSecondsPerKm(),
+                        saved.getElevationGainMeters(),
+                        saved.getStartedAt())));
+
+        if (saved.getRouteId() != null) {
+            achievementService.detectRouteBest(
+                            saved.getSportType(),
+                            previousRouteBest,
+                            saved.getMovingDurationSeconds(),
+                            saved.getStartedAt())
+                    .ifPresent(detected::add);
+        }
+
+        List<AchievementResponse> achievements =
+                achievementService.award(saved.getId(), saved.getUserId(), detected);
+
+        RouteComparisonResponse comparison = saved.getRouteId() == null
+                ? null
+                : routeService.compare(saved.getUserId(), saved.getRouteId(), saved.getId()).orElse(null);
+
+        ChallengeResponse.Result challengeResult = challengeId == null
+                ? null
+                : challengeService.settleFromWorkout(
+                                saved.getUserId(), challengeId, saved, !achievements.isEmpty())
+                        .orElse(null);
+
+        return new WorkoutResponse(toSummary(saved), gpsPointsOf(saved), achievements, comparison,
+                challengeResult);
     }
 
     /**
@@ -156,7 +246,13 @@ public class WorkoutService {
     public void delete(UUID userId, UUID workoutId) {
         WorkoutSession session = sessions.findByIdAndUserId(workoutId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seance introuvable."));
-        // Le trace part avec la seance grace au orphanRemoval de l'association.
+        // Le defi garde son verdict et perd seulement le lien vers la seance :
+        // effacer une reussite parce que la trace a disparu serait une punition.
+        challengeService.detachFromWorkout(userId, workoutId);
+        // Le trace part avec la seance grace au orphanRemoval de l'association,
+        // et les trophees avec elle par la cascade declaree en base. Les records
+        // COURANTS, eux, se recalculent a la lecture : celui que detenait cette
+        // seance revient donc naturellement a la suivante.
         sessions.delete(session);
     }
 
@@ -177,8 +273,30 @@ public class WorkoutService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    /**
+     * Vue d'une seance deja enregistree.
+     *
+     * <p>Les trophees sont relus en base et non recalcules : ils datent du jour
+     * ou ils sont tombes, et rejouer la detection donnerait aujourd'hui un
+     * resultat different, la seance faisant desormais partie de sa propre
+     * reference.
+     *
+     * <p>La comparaison de parcours et le verdict de defi, eux, ne figurent pas
+     * ici : ils appartiennent au moment de l'arrivee. Le classement complet est
+     * servi par {@code GET /me/routes/{id}/attempts}, le defi par
+     * {@code GET /me/challenges/{id}}.
+     */
     private WorkoutResponse toDetail(WorkoutSession session) {
-        List<GpsPointResponse> points = session.getGpsPoints().stream()
+        return new WorkoutResponse(
+                toSummary(session),
+                gpsPointsOf(session),
+                achievementService.forWorkout(session.getId()),
+                null,
+                null);
+    }
+
+    private List<GpsPointResponse> gpsPointsOf(WorkoutSession session) {
+        return session.getGpsPoints().stream()
                 .map(point -> new GpsPointResponse(
                         point.getPosition(),
                         point.getLatitude(),
@@ -188,7 +306,6 @@ public class WorkoutService {
                         point.getSpeed(),
                         point.getRecordedAt()))
                 .toList();
-        return new WorkoutResponse(toSummary(session), points);
     }
 
     private WorkoutSummaryResponse toSummary(WorkoutSession session) {

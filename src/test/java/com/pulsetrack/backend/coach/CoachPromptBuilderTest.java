@@ -148,7 +148,7 @@ class CoachPromptBuilderTest {
 
     private List<GoalProgressResponse> goals() {
         return List.of(new GoalProgressResponse(UUID.randomUUID(), GoalType.WEEKLY_DISTANCE,
-                "km", 20.0, 12.0, 60.0, 8.0, false));
+                "km", 20.0, 12.0, 60.0, 8.0, false, 100d, false, 12.0, null));
     }
 
     private WeeklySummaryResponse week(List<GoalProgressResponse> goals) {
@@ -156,7 +156,7 @@ class CoachPromptBuilderTest {
                 LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 9), "UTC",
                 2, 12_000d, 4_500L, 900, 120d,
                 new WeeklySummaryResponse.WeeklyComparison(1, 3_000d, 900L, 200, 33.3),
-                goals, 3);
+                goals, 3, List.of(), null);
     }
 
     private BodyProgressResponse withCheckIns() {

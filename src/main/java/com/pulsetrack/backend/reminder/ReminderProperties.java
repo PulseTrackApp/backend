@@ -17,6 +17,8 @@ import org.springframework.validation.annotation.Validated;
  * @param zone              fuseau d'interpretation des expressions cron
  * @param weeklyCheckinCron quand rappeler la pesee hebdomadaire
  * @param effortWarningCron quand verifier l'avancement des objectifs
+ * @param challengeExpiryCron quand fermer les defis perimes et rappeler ceux
+ *                            dont la date limite approche
  */
 @ConfigurationProperties(prefix = "pulsetrack.reminders")
 @Validated
@@ -24,5 +26,6 @@ public record ReminderProperties(
         boolean enabled,
         @NotBlank String zone,
         @NotBlank String weeklyCheckinCron,
-        @NotBlank String effortWarningCron) {
+        @NotBlank String effortWarningCron,
+        @NotBlank String challengeExpiryCron) {
 }

@@ -4,9 +4,11 @@ import java.time.Instant;
 import java.util.List;
 
 import com.pulsetrack.backend.bodycheckin.dto.BodyCheckInResponse;
+import com.pulsetrack.backend.challenge.dto.ChallengeResponse;
 import com.pulsetrack.backend.coach.dto.CoachMessageResponse;
 import com.pulsetrack.backend.goal.dto.GoalResponse;
 import com.pulsetrack.backend.profile.dto.ProfileResponse;
+import com.pulsetrack.backend.route.dto.RouteResponse;
 import com.pulsetrack.backend.workout.dto.WorkoutResponse;
 
 /**
@@ -26,6 +28,10 @@ import com.pulsetrack.backend.workout.dto.WorkoutResponse;
  * rendre service — l'un est irrecuperable par nature, l'autre se regenere en
  * deux clics chez Google.
  *
+ * <p>Les seances portent leurs trophees ; les parcours portent leur trace
+ * simplifie. Une archive qui ne contiendrait que les chiffres bruts obligerait a
+ * tout reconstituer a la main pour retrouver ses circuits.
+ *
  * @param exportedAt    instant de generation, pour dater l'archive
  * @param formatVersion version du format ; un import futur saura quoi lire
  */
@@ -38,8 +44,18 @@ public record UserDataExport(
         List<WorkoutResponse> workouts,
         List<BodyCheckInResponse> bodyCheckIns,
         List<GoalResponse> goals,
-        List<CoachMessageResponse> coachMessages) {
+        List<CoachMessageResponse> coachMessages,
+        List<RouteResponse> routes,
+        List<ChallengeResponse> challenges) {
 
-    /** Incrementer a chaque changement incompatible de la structure exportee. */
-    public static final int CURRENT_FORMAT_VERSION = 1;
+    /**
+     * Incrementer a chaque changement incompatible de la structure exportee.
+     *
+     * <p>Passe a 2 le 15 aout 2026 : les parcours et les defis s'ajoutent, et les
+     * seances portent desormais leurs trophees. L'ajout est compatible en
+     * lecture — un outil ecrit pour la version 1 ignore simplement les nouveaux
+     * champs — mais une archive de version 1 ne contient pas ces donnees, et un
+     * import doit le savoir.
+     */
+    public static final int CURRENT_FORMAT_VERSION = 2;
 }

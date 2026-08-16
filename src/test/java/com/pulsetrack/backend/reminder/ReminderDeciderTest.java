@@ -89,7 +89,8 @@ class ReminderDeciderTest {
     void ignore_un_objectif_dont_la_progression_est_incalculable() {
         // Poids cible sans aucune pesee : on ne peut rien affirmer.
         List<GoalProgressResponse> goals = List.of(new GoalProgressResponse(
-                UUID.randomUUID(), GoalType.TARGET_WEIGHT, "kg", 75, null, null, null, false));
+                UUID.randomUUID(), GoalType.TARGET_WEIGHT, "kg", 75, null, null, null, false,
+                null, false, null, null));
 
         assertThat(decider.effortWarningMessage(goals)).isEmpty();
     }
@@ -97,6 +98,7 @@ class ReminderDeciderTest {
     private GoalProgressResponse goal(GoalType type, String unit, double target, double current,
                                       double completion, boolean achieved) {
         return new GoalProgressResponse(UUID.randomUUID(), type, unit, target, current,
-                completion, Math.max(0, target - current), achieved);
+                completion, Math.max(0, target - current), achieved,
+                100d, achieved, current, null);
     }
 }
