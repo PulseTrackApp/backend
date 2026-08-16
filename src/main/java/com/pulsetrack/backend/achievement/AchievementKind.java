@@ -20,7 +20,7 @@ public enum AchievementKind {
      * mais un evenement qui merite d'etre celebre : c'est justement le moment ou
      * l'utilisateur decide s'il revient.
      */
-    FIRST_SESSION("Premiere seance", "session", false, 0d, 0d),
+    FIRST_SESSION("Première séance", "session", false, 0d, 0d),
 
     LONGEST_DISTANCE("Plus longue sortie", "m", false, 50d, 0.01),
 
@@ -32,7 +32,7 @@ public enum AchievementKind {
      */
     BEST_AVERAGE_PACE("Meilleure allure moyenne", "s/km", true, 2d, 0d),
 
-    HIGHEST_ELEVATION_GAIN("Plus gros denivele", "m", false, 10d, 0.01),
+    HIGHEST_ELEVATION_GAIN("Plus gros dénivelé", "m", false, 10d, 0.01),
 
     /** Meilleur temps sur un parcours enregistre. Plus bas est mieux. */
     BEST_ROUTE_TIME("Meilleur temps sur un parcours", "s", true, 5d, 0d);

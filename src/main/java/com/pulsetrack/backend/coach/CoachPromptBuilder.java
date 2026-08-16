@@ -112,16 +112,16 @@ public class CoachPromptBuilder {
         var week = context.week();
         StringJoiner out = new StringJoiner("\n");
         out.add("SEMAINE DU " + week.weekStart() + " AU " + week.weekEnd());
-        out.add("- Seances : " + week.sessionCount());
+        out.add("- Séances : " + week.sessionCount());
         out.add("- Distance : " + kilometres(week.distanceMeters()));
         out.add("- Temps en mouvement : " + minutes(week.movingDurationSeconds()));
         out.add("- Calories : " + week.caloriesBurned() + " kcal");
-        out.add("- Denivele positif : " + Math.round(week.elevationGainMeters()) + " m");
+        out.add("- Dénivelé positif : " + Math.round(week.elevationGainMeters()) + " m");
         out.add("- Jours consecutifs avec activite : " + week.activeDayStreak());
 
         var previous = week.previousWeek();
-        out.add("- Ecart avec la semaine precedente : "
-                + signed(previous.sessionCountDelta()) + " seance(s), "
+        out.add("- Écart avec la semaine précédente : "
+                + signed(previous.sessionCountDelta()) + " séance(s), "
                 + signed(previous.distanceMetersDelta() / 1000.0) + " km, "
                 + signed(previous.caloriesBurnedDelta()) + " kcal");
 
@@ -144,11 +144,11 @@ public class CoachPromptBuilder {
         StringJoiner out = new StringJoiner("\n");
         out.add("EVOLUTION PHYSIQUE");
         if (body.checkInCount() == 0) {
-            out.add("- Aucune pesee enregistree. N'invente aucune tendance de poids.");
+            out.add("- Aucune pesée enregistrée. N'invente aucune tendance de poids.");
             return out.toString();
         }
-        out.add("- Releves : " + body.checkInCount());
-        out.add("- Poids actuel : " + body.currentWeightKg() + " kg (depart : " + body.startWeightKg() + " kg)");
+        out.add("- Relevés : " + body.checkInCount());
+        out.add("- Poids actuel : " + body.currentWeightKg() + " kg (départ : " + body.startWeightKg() + " kg)");
         if (body.totalChangeKg() != null) {
             out.add("- Variation totale : " + signed(body.totalChangeKg()) + " kg");
         }
@@ -164,9 +164,9 @@ public class CoachPromptBuilder {
 
     private String renderSessions(CoachContext context) {
         StringJoiner out = new StringJoiner("\n");
-        out.add("SEANCES RECENTES");
+        out.add("SÉANCES RÉCENTES");
         if (context.recentSessions().isEmpty()) {
-            out.add("- Aucune seance enregistree.");
+            out.add("- Aucune séance enregistrée.");
             return out.toString();
         }
         context.recentSessions().stream()

@@ -68,7 +68,7 @@ public class ReminderDecider {
                 .min((left, right) -> Double.compare(left.completionPercent(), right.completionPercent()))
                 .orElseThrow();
 
-        return Optional.of("Il te reste %s %s a faire pour tenir ton objectif de la semaine."
+        return Optional.of("Il te reste %s %s à faire pour tenir ton objectif de la semaine."
                 .formatted(trim(worst.remaining()), worst.unit()));
     }
 

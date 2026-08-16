@@ -70,7 +70,7 @@ public class ChallengeReminderScheduler {
     public void remindExpiringChallenges() {
         int closed = challengeService.expireOverdue();
         if (closed > 0) {
-            log.debug("Defis expires fermes : {}", closed);
+            log.debug("Défis expirés fermés : {}", closed);
         }
 
         LocalDate today = LocalDate.now(zone);
@@ -79,10 +79,10 @@ public class ChallengeReminderScheduler {
             // rappel : le traitement continue.
             try {
                 deviceTokenService.notifyUser(challenge.getUserId(), PushNotification
-                        .of("Defi a relever", messageFor(challenge, today))
+                        .of("Défi à relever", messageFor(challenge, today))
                         .withRoute("/challenges/" + challenge.getId()));
             } catch (RuntimeException ex) {
-                log.warn("Rappel de defi en echec pour l'utilisateur {}", challenge.getUserId(), ex);
+                log.warn("Rappel de défi en échec pour l'utilisateur {}", challenge.getUserId(), ex);
             }
         }
     }
@@ -94,10 +94,10 @@ public class ChallengeReminderScheduler {
                 Wording.duration(challenge.getTargetDurationSeconds()));
 
         if (days <= 0) {
-            return "Dernier jour pour ton defi : %s.".formatted(cible);
+            return "Dernier jour pour ton défi : %s.".formatted(cible);
         }
         return days == 1
-                ? "Plus qu'un jour pour ton defi : %s.".formatted(cible)
-                : "Encore %d jours pour ton defi : %s.".formatted(days, cible);
+                ? "Plus qu'un jour pour ton défi : %s.".formatted(cible)
+                : "Encore %d jours pour ton défi : %s.".formatted(days, cible);
     }
 }

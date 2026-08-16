@@ -112,7 +112,7 @@ public class AccountService {
 
         users.delete(user);
         moduleAccess.evict(userId);
-        log.info("Compte {} supprime a la demande de son proprietaire", userId);
+        log.info("Compte {} supprimé à la demande de son propriétaire", userId);
     }
 
     private User require(UUID userId) {

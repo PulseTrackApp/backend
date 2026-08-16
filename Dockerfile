@@ -66,7 +66,14 @@ EXPOSE 8080
 # regions dont on n'a aucun besoin, et c'est autant de memoire perdue.
 # ExitOnOutOfMemoryError fait tomber le conteneur au lieu de le laisser vivoter
 # en echouant sur une requete sur deux : l'orchestrateur le redemarre.
-ENV JAVA_OPTS="-Xmx384m -XX:MaxMetaspaceSize=160m -XX:MaxDirectMemorySize=32m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+# `-Dfile.encoding=UTF-8` et les deux encodages de flux ne sont pas decoratifs.
+# Sous Java 17, l'encodage par defaut est celui de la plateforme, et l'image
+# Alpine ne declare aucune locale : il retombe sur de l'ASCII. Les reponses JSON
+# n'en souffrent pas — Jackson ecrit toujours en UTF-8 — mais les journaux, eux,
+# passent par `System.out` et rendraient « Defi releve » la ou le code dit
+# « Défi relevé ». Depuis que les textes de l'API sont accentues, c'est la
+# difference entre des journaux lisibles et une bouillie de points d'interrogation.
+ENV JAVA_OPTS="-Xmx384m -XX:MaxMetaspaceSize=160m -XX:MaxDirectMemorySize=32m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8"
 
 # La sonde de disponibilite d'Actuator, pas `/actuator/health` : elle repond 503
 # tant que Flyway et le pool de connexions ne sont pas prets, ce qui evite

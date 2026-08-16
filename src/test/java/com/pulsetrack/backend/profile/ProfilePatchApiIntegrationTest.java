@@ -110,7 +110,7 @@ class ProfilePatchApiIntegrationTest extends AbstractApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.detail").value("Aucune modification demandee."));
+                .andExpect(jsonPath("$.detail").value("Aucune modification demandée."));
     }
 
     @Test

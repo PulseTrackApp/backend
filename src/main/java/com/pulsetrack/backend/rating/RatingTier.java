@@ -14,11 +14,11 @@ public enum RatingTier {
     /** Aucune seance : rien a noter, tout a accueillir. */
     NEW(null, 0),
 
-    STARTING("Debutant", 1),
-    REGULAR("Regulier", 40),
+    STARTING("Débutant", 1),
+    REGULAR("Régulier", 40),
     SOLID("Solide", 55),
     STRONG("Costaud", 70),
-    ATHLETE("Athlete", 85);
+    ATHLETE("Athlète", 85);
 
     private final String title;
     private final int minimumScore;

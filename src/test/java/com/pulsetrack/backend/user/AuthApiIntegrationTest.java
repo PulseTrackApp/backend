@@ -191,7 +191,7 @@ class AuthApiIntegrationTest extends AbstractApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(refreshBody("jeton-completement-invente")))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.detail").value("Session expiree, veuillez vous reconnecter."));
+                .andExpect(jsonPath("$.detail").value("Session expirée, veuillez vous reconnecter."));
     }
 
     @Test

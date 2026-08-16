@@ -29,10 +29,10 @@ import jakarta.validation.constraints.Size;
 public record CreateChallengeRequest(
         @Size(max = 120) String title,
         @NotNull SportType sportType,
-        @DecimalMin(value = "100.0", message = "un defi porte sur 100 metres au minimum")
-        @DecimalMax(value = "500000.0", message = "500 kilometres au maximum")
+        @DecimalMin(value = "100.0", message = "un défi porte sur 100 mètres au minimum")
+        @DecimalMax(value = "500000.0", message = "500 kilomètres au maximum")
         double targetDistanceMeters,
-        @Min(value = 60, message = "un defi dure au moins une minute")
+        @Min(value = 60, message = "un défi dure au moins une minute")
         @Max(value = 86_400, message = "24 heures au maximum")
         long targetDurationSeconds,
         UUID routeId,

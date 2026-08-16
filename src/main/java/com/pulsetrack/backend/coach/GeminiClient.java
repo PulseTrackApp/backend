@@ -132,14 +132,14 @@ public class GeminiClient {
     private RuntimeException translate(HttpStatusCode status) {
         if (status.value() == 401 || status.value() == 403) {
             return new BusinessRuleException(
-                    "Votre cle API a ete refusee. Verifiez-la dans les parametres.");
+                    "Votre clé API a été refusée. Vérifiez-la dans les paramètres.");
         }
         if (status.value() == 429) {
             return new RateLimitedException(
                     "Le quota de votre cle est atteint. Reessayez plus tard.");
         }
         // Le detail technique reste dans les journaux, pas dans la reponse.
-        log.warn("Reponse en erreur de Gemini : statut {}", status.value());
+        log.warn("Réponse en erreur de Gemini : statut {}", status.value());
         return new ExternalServiceException("L'assistant a repondu par une erreur.");
     }
 
@@ -150,13 +150,13 @@ public class GeminiClient {
      */
     private String extractText(GenerateContentResponse response) {
         if (response == null || response.candidates() == null || response.candidates().isEmpty()) {
-            throw new ExternalServiceException("L'assistant n'a produit aucune reponse exploitable.");
+            throw new ExternalServiceException("L'assistant n'a produit aucune réponse exploitable.");
         }
 
         Candidate candidate = response.candidates().get(0);
         if (candidate.content() == null || candidate.content().parts() == null
                 || candidate.content().parts().isEmpty()) {
-            throw new ExternalServiceException("L'assistant n'a produit aucune reponse exploitable.");
+            throw new ExternalServiceException("L'assistant n'a produit aucune réponse exploitable.");
         }
 
         String text = candidate.content().parts().stream()
@@ -166,7 +166,7 @@ public class GeminiClient {
                 .orElse("");
 
         if (text.isBlank()) {
-            throw new ExternalServiceException("L'assistant n'a produit aucune reponse exploitable.");
+            throw new ExternalServiceException("L'assistant n'a produit aucune réponse exploitable.");
         }
         return text.trim();
     }

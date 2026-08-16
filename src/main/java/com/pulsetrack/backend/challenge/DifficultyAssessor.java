@@ -62,8 +62,8 @@ public class DifficultyAssessor {
         if (usable.size() < MIN_SESSIONS_FOR_JUDGEMENT) {
             return new ChallengeResponse.Difficulty(
                     DifficultyLevel.INCONNU,
-                    "Premier reperage",
-                    "Pas encore assez de seances en %s pour situer ce defi. Il servira de reference."
+                    "Premier repérage",
+                    "Pas encore assez de séances en %s pour situer ce défi. Il servira de référence."
                             .formatted(sport.label()),
                     null,
                     DifficultyLevel.ReferenceBasis.NONE);
@@ -86,8 +86,8 @@ public class DifficultyAssessor {
         if (speedup <= 0) {
             return difficulty(DifficultyLevel.ACCESSIBLE, averagePace,
                     DifficultyLevel.ReferenceBasis.AVERAGE_LAST_10,
-                    "Largement a ta portee",
-                    "Ton allure moyenne en %s est de %s. Ce defi en demande %s : tu as de la marge."
+                    "Largement à ta portée",
+                    "Ton allure moyenne en %s est de %s. Ce défi en demande %s : tu as de la marge."
                             .formatted(sport.label(), Wording.pace(averagePace),
                                     Wording.pace(requiredPaceSecondsPerKm)));
         }
@@ -95,7 +95,7 @@ public class DifficultyAssessor {
         if (speedup <= REALISTIC_SPEEDUP) {
             return difficulty(DifficultyLevel.REALISTE, averagePace,
                     DifficultyLevel.ReferenceBasis.AVERAGE_LAST_10,
-                    "A ta portee",
+                    "À ta portée",
                     "Un peu au-dessus de ton allure habituelle de %s. C'est jouable."
                             .formatted(Wording.pace(averagePace)));
         }
@@ -104,7 +104,7 @@ public class DifficultyAssessor {
             return difficulty(DifficultyLevel.AMBITIEUX, averagePace,
                     DifficultyLevel.ReferenceBasis.AVERAGE_LAST_10,
                     "Un cran au-dessus de ton habitude",
-                    "Ton allure moyenne en %s est de %s. Ce defi en demande %s : c'est le bon ecart pour progresser."
+                    "Ton allure moyenne en %s est de %s. Ce défi en demande %s : c'est le bon écart pour progresser."
                             .formatted(sport.label(), Wording.pace(averagePace),
                                     Wording.pace(requiredPaceSecondsPerKm)));
         }
@@ -115,14 +115,14 @@ public class DifficultyAssessor {
             return difficulty(DifficultyLevel.AMBITIEUX, bestPace,
                     DifficultyLevel.ReferenceBasis.BEST_EVER,
                     "Le niveau de ton meilleur jour",
-                    "Bien au-dessus de ton habitude, mais tu as deja tenu %s en %s. C'est un retour au sommet."
+                    "Bien au-dessus de ton habitude, mais tu as déjà tenu %s en %s. C'est un retour au sommet."
                             .formatted(Wording.pace(bestPace), sport.label()));
         }
 
         return difficulty(DifficultyLevel.HORS_DE_PORTEE, bestPace,
                 DifficultyLevel.ReferenceBasis.BEST_EVER,
-                "Tres au-dessus de ce que tu as deja fait",
-                "Ta meilleure allure en %s est de %s, ce defi en demande %s. Rien ne t'empeche d'essayer, mais vise plutot un premier palier."
+                "Très au-dessus de ce que tu as déjà fait",
+                "Ta meilleure allure en %s est de %s, ce défi en demande %s. Rien ne t'empêche d'essayer, mais vise plutôt un premier palier."
                         .formatted(sport.label(), Wording.pace(bestPace),
                                 Wording.pace(requiredPaceSecondsPerKm)));
     }

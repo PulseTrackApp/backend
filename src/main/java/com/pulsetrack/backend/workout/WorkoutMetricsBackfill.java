@@ -69,7 +69,7 @@ public class WorkoutMetricsBackfill {
             }
         }
 
-        log.info("Recalcul des metriques : {} seances examinees, {} corrigees", examined, updated);
+        log.info("Recalcul des métriques : {} séances examinées, {} corrigées", examined, updated);
         return new Result(examined, updated);
     }
 
@@ -103,7 +103,7 @@ public class WorkoutMetricsBackfill {
             return false;
         }
 
-        log.info("Seance {} : distance {} -> {} m, pic {} -> {} km/h",
+        log.info("Séance {} : distance {} -> {} m, pic {} -> {} km/h",
                 session.getId(), session.getDistanceMeters(), recomputed.distanceMeters(),
                 session.getMaxSpeedKmh(), recomputed.maxSpeedKmh());
         session.applyMetrics(recomputed);

@@ -161,7 +161,7 @@ public class BodyCheckInService {
     @Transactional
     public void delete(UUID userId, UUID checkInId) {
         BodyCheckIn checkIn = checkIns.findByIdAndUserId(checkInId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Releve introuvable."));
+                .orElseThrow(() -> new ResourceNotFoundException("Relevé introuvable."));
         checkIns.delete(checkIn);
         // Supprimer le dernier releve doit ramener le profil au precedent, pas
         // laisser un poids qui n'existe plus nulle part.

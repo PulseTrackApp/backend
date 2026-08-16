@@ -49,7 +49,7 @@ class EmailVerificationApiIntegrationTest extends AbstractApiIntegrationTest {
     void refuse_un_code_invente() throws Exception {
         verify("ABCD2345")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Ce code de verification est invalide ou a expire."));
+                .andExpect(jsonPath("$.detail").value("Ce code de vérification est invalide ou a expiré."));
     }
 
     @Test

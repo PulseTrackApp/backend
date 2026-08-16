@@ -7,7 +7,7 @@ package com.pulsetrack.backend.coach;
 public enum CoachingTone {
 
     /** Chaleureux, encourageant, tolerant sur les semaines creuses. */
-    ENCOURAGING("bienveillant et encourageant, qui valorise les progres meme modestes"),
+    ENCOURAGING("bienveillant et encourageant, qui valorise les progrès même modestes"),
 
     /** Factuel, centre sur les chiffres, sans commentaire affectif. */
     FACTUAL("factuel et direct, qui s'en tient aux chiffres et aux faits"),

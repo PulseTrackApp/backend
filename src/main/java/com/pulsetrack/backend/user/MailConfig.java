@@ -43,7 +43,7 @@ public class MailConfig {
     @ConditionalOnProperty(prefix = "pulsetrack.mail", name = "enabled",
             havingValue = "false", matchIfMissing = true)
     ResetCodeSender loggingResetCodeSender() {
-        log.info("Envoi de courriel desactive : les codes de reinitialisation iront dans les journaux.");
+        log.info("Envoi de courriel désactivé : les codes de réinitialisation iront dans les journaux.");
         return new LoggingResetCodeSender();
     }
 

@@ -212,25 +212,25 @@ public class SubscriptionService {
 
     private String headlineOf(SubscriptionStatus status) {
         return switch (status) {
-            case TRIAL -> "Periode d'essai";
+            case TRIAL -> "Période d'essai";
             case ACTIVE -> "Abonnement actif";
-            case EXPIRED -> "Abonnement a renouveler";
-            case NONE -> "Aucun acces";
+            case EXPIRED -> "Abonnement à renouveler";
+            case NONE -> "Aucun accès";
         };
     }
 
     private String messageOf(SubscriptionStatus status, Integer daysLeft) {
         return switch (status) {
             case TRIAL -> daysLeft == null
-                    ? "Tu es en periode d'essai."
+                    ? "Tu es en période d'essai."
                     : "Il te reste %s d'essai.".formatted(
                             Wording.plural(daysLeft, "jour", "jours"));
             case ACTIVE -> daysLeft == null
                     ? "Ton abonnement est actif."
                     : "Ton abonnement court encore %s.".formatted(
                             Wording.plural(daysLeft, "jour", "jours"));
-            case EXPIRED -> "Ton acces est arrive a echeance. Choisis une formule pour continuer.";
-            case NONE -> "Ce compte n'a pas d'acces actif.";
+            case EXPIRED -> "Ton accès est arrivé à échéance. Choisis une formule pour continuer.";
+            case NONE -> "Ce compte n'a pas d'accès actif.";
         };
     }
 

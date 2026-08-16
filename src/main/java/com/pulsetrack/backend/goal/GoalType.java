@@ -18,7 +18,7 @@ public enum GoalType {
     WEEKLY_DISTANCE("km"),
 
     /** Nombre de seances a realiser dans la semaine. */
-    WEEKLY_SESSIONS("seances"),
+    WEEKLY_SESSIONS("séances"),
 
     /** Temps d'entrainement hebdomadaire, en minutes. */
     WEEKLY_DURATION("min"),

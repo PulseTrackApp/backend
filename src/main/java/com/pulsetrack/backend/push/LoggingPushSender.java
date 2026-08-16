@@ -16,7 +16,7 @@ public class LoggingPushSender implements PushSender {
 
     @Override
     public boolean send(String token, PushNotification notification) {
-        log.info("Notification non envoyee (FCM desactive) — destinataire {}, titre « {} », corps « {} »",
+        log.info("Notification non envoyée (FCM désactivé) — destinataire {}, titre « {} », corps « {} »",
                 PushTokens.masked(token), notification.title(), notification.body());
         return true;
     }

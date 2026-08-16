@@ -15,6 +15,6 @@ public class LoggingVerificationCodeSender implements VerificationCodeSender {
 
     @Override
     public void send(String email, String code) {
-        log.warn("Envoi de courriel desactive : code de verification pour {} = {}", email, code);
+        log.warn("Envoi de courriel désactivé : code de vérification pour {} = {}", email, code);
     }
 }

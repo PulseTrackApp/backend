@@ -69,8 +69,8 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         if (isExpired(exception)) {
             problems.write(request, response, HttpStatus.UNAUTHORIZED,
-                    "Session expiree",
-                    "Ta session a expire. Reconnecte-toi pour continuer.",
+                    "Session expirée",
+                    "Ta session a expiré. Reconnecte-toi pour continuer.",
                     "token-expired");
             return;
         }
@@ -125,8 +125,8 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
                 throws IOException {
             delegate.handle(request, response, exception);
             problems.write(request, response, HttpStatus.FORBIDDEN,
-                    "Acces refuse",
-                    "Ce compte n'a pas les droits necessaires.",
+                    "Accès refusé",
+                    "Ce compte n'a pas les droits nécessaires.",
                     "access-denied");
         }
     }

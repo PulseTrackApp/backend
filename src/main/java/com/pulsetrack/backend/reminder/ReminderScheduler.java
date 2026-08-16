@@ -66,7 +66,7 @@ public class ReminderScheduler {
     public void remindWeeklyCheckIn() {
         LocalDate today = LocalDate.now(zone);
         List<UUID> recipients = deviceTokenService.userIdsWithDevices();
-        log.debug("Rappel de pesee : {} destinataire(s) potentiel(s)", recipients.size());
+        log.debug("Rappel de pesée : {} destinataire(s) potentiel(s)", recipients.size());
 
         for (UUID userId : recipients) {
             // Une erreur sur un utilisateur ne doit pas priver les autres de leur
@@ -76,10 +76,10 @@ public class ReminderScheduler {
                     continue;
                 }
                 deviceTokenService.notifyUser(userId, PushNotification
-                        .of("Pesee hebdomadaire", "Deux minutes pour noter ton poids et ton ressenti.")
+                        .of("Pesée hebdomadaire", "Deux minutes pour noter ton poids et ton ressenti.")
                         .withRoute("/body-checkin"));
             } catch (RuntimeException ex) {
-                log.warn("Rappel de pesee en echec pour l'utilisateur {}", userId, ex);
+                log.warn("Rappel de pesée en échec pour l'utilisateur {}", userId, ex);
             }
         }
     }
@@ -104,7 +104,7 @@ public class ReminderScheduler {
                                 .of("Objectif de la semaine", message)
                                 .withRoute("/dashboard")));
             } catch (RuntimeException ex) {
-                log.warn("Alerte d'effort en echec pour l'utilisateur {}", userId, ex);
+                log.warn("Alerte d'effort en échec pour l'utilisateur {}", userId, ex);
             }
         }
     }

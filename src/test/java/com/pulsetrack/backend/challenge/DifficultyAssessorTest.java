@@ -78,7 +78,7 @@ class DifficultyAssessorTest {
 
         assertThat(difficulty.level()).isEqualTo(DifficultyLevel.HORS_DE_PORTEE);
         // Le message propose un premier palier plutot que de refuser.
-        assertThat(difficulty.message()).contains("Rien ne t'empeche d'essayer");
+        assertThat(difficulty.message()).contains("Rien ne t'empêche d'essayer");
     }
 
     @Test

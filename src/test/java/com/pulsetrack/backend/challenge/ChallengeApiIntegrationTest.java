@@ -208,7 +208,7 @@ class ChallengeApiIntegrationTest extends AbstractApiIntegrationTest {
                 .andExpect(jsonPath("$.status").value("FAILED"))
                 .andExpect(jsonPath("$.result.succeeded").value(false))
                 .andExpect(jsonPath("$.result.appreciation.headline")
-                        .value("Distance faite, echeance depassee"))
+                        .value("Distance faite, échéance dépassée"))
                 // Le message reste tourne vers la prochaine tentative.
                 .andExpect(jsonPath("$.result.appreciation.advice").isNotEmpty());
     }

@@ -38,7 +38,7 @@ public class GoalService {
     public GoalResponse create(UUID userId, GoalRequest request) {
         goals.findByUserIdAndTypeAndActiveTrue(userId, request.type()).ifPresent(existing -> {
             throw new ConflictException(
-                    "Un objectif de ce type est deja en cours. Modifiez-le ou archivez-le d'abord.");
+                    "Un objectif de ce type est déjà en cours. Modifiez-le ou archivez-le d'abord.");
         });
 
         LocalDate startDate = request.startDate() == null ? LocalDate.now() : request.startDate();
@@ -61,7 +61,7 @@ public class GoalService {
 
         if (goal.getType() != request.type()) {
             throw new BusinessRuleException(
-                    "Le type d'un objectif ne se modifie pas. Archivez celui-ci et creez-en un nouveau.");
+                    "Le type d'un objectif ne se modifie pas. Archivez celui-ci et créez-en un nouveau.");
         }
 
         LocalDate startDate = request.startDate() == null ? goal.getStartDate() : request.startDate();
@@ -128,7 +128,7 @@ public class GoalService {
 
     private void validateDates(LocalDate startDate, LocalDate endDate) {
         if (endDate != null && endDate.isBefore(startDate)) {
-            throw new BusinessRuleException("L'echeance ne peut pas preceder la date de debut.");
+            throw new BusinessRuleException("L'échéance ne peut pas précéder la date de début.");
         }
     }
 

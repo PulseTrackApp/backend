@@ -68,9 +68,9 @@ class WeeklyAppreciatorTest {
         Appreciation worse = appreciator.appreciate(week(2, 9_000), week(4, 25_000), List.of(), 0.9);
 
         assertThat(better.tier()).isEqualTo(AppreciationTier.GOOD);
-        assertThat(better.message()).contains("de plus que la semaine derniere");
+        assertThat(better.message()).contains("de plus que la semaine dernière");
         assertThat(worse.tier()).isEqualTo(AppreciationTier.BEHIND);
-        assertThat(worse.message()).contains("de moins que la semaine derniere");
+        assertThat(worse.message()).contains("de moins que la semaine dernière");
     }
 
     @Test

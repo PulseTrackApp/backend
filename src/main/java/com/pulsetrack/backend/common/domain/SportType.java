@@ -5,10 +5,10 @@ package com.pulsetrack.backend.common.domain;
  * pratiques) et les seances, d'ou sa place dans le paquet commun.
  */
 public enum SportType {
-    RUN("course a pied"),
-    RIDE("velo"),
+    RUN("course à pied"),
+    RIDE("vélo"),
     WALK("marche"),
-    OTHER("seance");
+    OTHER("séance");
 
     private final String label;
 

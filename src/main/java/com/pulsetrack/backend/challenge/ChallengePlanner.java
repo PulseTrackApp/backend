@@ -106,33 +106,33 @@ public class ChallengePlanner {
         String pace = Wording.pace(challenge.requiredPaceSecondsPerKm());
 
         cues.add(new Cue(CueTrigger.ELAPSED_PERCENT, 25, CueKind.MOTIVATION,
-                "Bien lance",
-                "Un quart du temps est passe. A " + pace + ", ce rythme te mene au bout."));
+                "Bien lancé",
+                "Un quart du temps est passé. À " + pace + ", ce rythme te mène au bout."));
 
         cues.add(new Cue(CueTrigger.DISTANCE_PERCENT, 50, CueKind.MOTIVATION,
-                "Moitie faite",
-                Wording.distance(distance / 2) + " derriere toi. La seconde moitie se joue maintenant."));
+                "Moitié faite",
+                Wording.distance(distance / 2) + " derrière toi. La seconde moitié se joue maintenant."));
 
         cues.add(new Cue(CueTrigger.ELAPSED_PERCENT, 75, CueKind.PACE_WARNING,
                 "Dernier quart",
-                "Trois quarts du temps ecoules. Regarde ce qu'il te reste et ajuste."));
+                "Trois quarts du temps écoulés. Regarde ce qu'il te reste et ajuste."));
 
         // Sur un defi court, l'alerte des cinq minutes tomberait avant la moitie
         // de l'effort : elle inquieterait pour rien.
         if (duration > FIVE_MINUTE_ALERT_MIN_DURATION) {
             cues.add(new Cue(CueTrigger.REMAINING_SECONDS, 300, CueKind.DEADLINE_ALERT,
                     "5 minutes",
-                    "Cinq minutes avant l'echeance. C'est le moment de donner ce qu'il reste."));
+                    "Cinq minutes avant l'échéance. C'est le moment de donner ce qu'il reste."));
         }
 
         cues.add(new Cue(CueTrigger.REMAINING_SECONDS, 60, CueKind.DEADLINE_ALERT,
-                "Derniere minute",
-                "Soixante secondes. Tout se joue la."));
+                "Dernière minute",
+                "Soixante secondes. Tout se joue là."));
 
         if (distance > FINAL_PUSH_MIN_DISTANCE) {
             cues.add(new Cue(CueTrigger.DISTANCE_REMAINING_METERS, 500, CueKind.FINAL_PUSH,
                     "Dernier effort",
-                    "500 metres. Tu y es."));
+                    "500 mètres. Tu y es."));
         }
 
         return List.copyOf(cues);

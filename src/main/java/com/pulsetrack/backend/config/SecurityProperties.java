@@ -150,7 +150,7 @@ public record SecurityProperties(@NotNull @Valid Jwt jwt,
             @NotBlank @Size(min = 16, message = "le secret de chiffrement doit faire au moins 16 caracteres")
             String password,
             @NotBlank
-            @Pattern(regexp = "[0-9a-fA-F]+", message = "le sel doit etre une chaine hexadecimale")
+            @Pattern(regexp = "[0-9a-fA-F]+", message = "le sel doit être une chaîne hexadécimale")
             String salt) {
     }
 }

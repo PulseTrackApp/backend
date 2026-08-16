@@ -59,13 +59,13 @@ public class EmailVerificationService {
         if (account.isEmpty()) {
             // Journalise sans l'adresse : la trace ne doit pas devenir la liste
             // des adresses testees par un curieux.
-            log.info("Demande de verification pour une adresse inconnue, ignoree.");
+            log.info("Demande de vérification pour une adresse inconnue, ignorée.");
             return;
         }
 
         User user = account.get();
         if (user.isEmailVerified()) {
-            log.info("Compte {} deja verifie : aucun code emis.", user.getId());
+            log.info("Compte {} déjà vérifié : aucun code émis.", user.getId());
             return;
         }
         sendCodeTo(user);
@@ -111,7 +111,7 @@ public class EmailVerificationService {
                 .orElseThrow(() -> new InvalidVerificationCodeException("Code inconnu."));
 
         if (token.isUsed() || token.hasExpiredAt(now)) {
-            throw new InvalidVerificationCodeException("Code perime ou deja utilise.");
+            throw new InvalidVerificationCodeException("Code périmé ou déjà utilisé.");
         }
 
         User user = users.findById(token.getUserId())
@@ -119,7 +119,7 @@ public class EmailVerificationService {
 
         user.markEmailVerified();
         token.useAt(now);
-        log.info("Adresse verifiee pour le compte {}", user.getId());
+        log.info("Adresse vérifiée pour le compte {}", user.getId());
     }
 
     private void invalidatePending(UUID userId, Instant now) {

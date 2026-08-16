@@ -23,11 +23,11 @@ final class AchievementMessages {
     /** Titre court, quelques mots, destine a la banniere de celebration. */
     static String headline(AchievementDetector.Detected detected) {
         return switch (detected.kind()) {
-            case FIRST_SESSION -> "Premiere seance enregistree";
+            case FIRST_SESSION -> "Première séance enregistrée";
             case LONGEST_DISTANCE -> "Nouveau record de distance";
             case LONGEST_MOVING_DURATION -> "Nouveau record d'endurance";
             case BEST_AVERAGE_PACE -> "Nouveau record d'allure";
-            case HIGHEST_ELEVATION_GAIN -> "Nouveau record de denivele";
+            case HIGHEST_ELEVATION_GAIN -> "Nouveau record de dénivelé";
             case BEST_ROUTE_TIME -> "Nouveau meilleur temps";
         };
     }
@@ -42,39 +42,39 @@ final class AchievementMessages {
         Double previous = detected.previousValue();
 
         return switch (detected.kind()) {
-            case FIRST_SESSION -> "Ta premiere seance de %s est enregistree. Tout part de la."
+            case FIRST_SESSION -> "Ta première séance de %s est enregistrée. Tout part de là."
                     .formatted(sport.label());
 
             case LONGEST_DISTANCE -> previous == null
                     ? "%s : ta plus longue sortie en %s.".formatted(
                             Wording.distance(detected.newValue()), sport.label())
-                    : "%s, soit %s de plus que ton precedent record en %s.".formatted(
+                    : "%s, soit %s de plus que ton précédent record en %s.".formatted(
                             Wording.distance(detected.newValue()),
                             Wording.distance(detected.newValue() - previous),
                             sport.label());
 
             case LONGEST_MOVING_DURATION -> previous == null
-                    ? "%s en mouvement : ta plus longue seance de %s.".formatted(
+                    ? "%s en mouvement : ta plus longue séance de %s.".formatted(
                             Wording.duration((long) detected.newValue()), sport.label())
-                    : "%s en mouvement, soit %s de plus que ton precedent record.".formatted(
+                    : "%s en mouvement, soit %s de plus que ton précédent record.".formatted(
                             Wording.duration((long) detected.newValue()),
                             Wording.duration((long) (detected.newValue() - previous)));
 
             case BEST_AVERAGE_PACE -> previous == null
                     ? "%s : ta meilleure allure en %s.".formatted(
                             Wording.pace((int) detected.newValue()), sport.label())
-                    : "%s, soit %s gagnees au kilometre sur ton precedent record.".formatted(
+                    : "%s, soit %s gagnées au kilomètre sur ton précédent record.".formatted(
                             Wording.pace((int) detected.newValue()),
                             Wording.duration((long) (previous - detected.newValue())));
 
             case HIGHEST_ELEVATION_GAIN -> previous == null
-                    ? "%d m de denivele positif : ton plus gros en %s.".formatted(
+                    ? "%d m de dénivelé positif : ton plus gros en %s.".formatted(
                             Math.round(detected.newValue()), sport.label())
-                    : "%d m de denivele positif, soit %d m de plus que ton precedent record.".formatted(
+                    : "%d m de dénivelé positif, soit %d m de plus que ton précédent record.".formatted(
                             Math.round(detected.newValue()),
                             Math.round(detected.newValue() - previous));
 
-            case BEST_ROUTE_TIME -> "%s sur ce parcours, soit %s de gagnees sur ton meilleur temps."
+            case BEST_ROUTE_TIME -> "%s sur ce parcours, soit %s de gagnées sur ton meilleur temps."
                     .formatted(
                             Wording.duration((long) detected.newValue()),
                             Wording.duration((long) (previous - detected.newValue())));

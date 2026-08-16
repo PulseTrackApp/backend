@@ -81,11 +81,11 @@ public class RouteService {
     @Transactional
     public RouteResponse create(UUID userId, CreateRouteRequest request) {
         WorkoutSession source = sessions.findByIdAndUserId(request.workoutId(), userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Seance introuvable."));
+                .orElseThrow(() -> new ResourceNotFoundException("Séance introuvable."));
 
         String name = request.name().trim();
         if (routes.existsByUserIdAndNameIgnoreCase(userId, name)) {
-            throw new ConflictException("Un parcours porte deja ce nom.");
+            throw new ConflictException("Un parcours porte déjà ce nom.");
         }
 
         List<TrackSimplifier.Point> track = source.getGpsPoints().stream()
@@ -95,13 +95,13 @@ public class RouteService {
 
         if (track.size() < MIN_POINTS) {
             throw new BusinessRuleException(
-                    "Cette seance n'a pas de trace exploitable : un parcours demande au moins "
+                    "Cette séance n'a pas de trace exploitable : un parcours demande au moins "
                             + MIN_POINTS + " points GPS.");
         }
         if (source.getDistanceMeters() < MIN_DISTANCE_METERS) {
             throw new BusinessRuleException(
-                    "Cette seance est trop courte pour faire un parcours : "
-                            + Math.round(MIN_DISTANCE_METERS) + " metres au minimum.");
+                    "Cette séance est trop courte pour faire un parcours : "
+                            + Math.round(MIN_DISTANCE_METERS) + " mètres au minimum.");
         }
 
         List<TrackSimplifier.Point> simplified = simplifier.simplify(track);
@@ -146,7 +146,7 @@ public class RouteService {
         SavedRoute route = load(userId, routeId);
         String name = newName.trim();
         if (!route.getName().equalsIgnoreCase(name) && routes.existsByUserIdAndNameIgnoreCase(userId, name)) {
-            throw new ConflictException("Un parcours porte deja ce nom.");
+            throw new ConflictException("Un parcours porte déjà ce nom.");
         }
         route.rename(name, Instant.now());
         Map<UUID, RouteAttemptStats> stats = attemptStatsOf(userId, List.of(route));
@@ -344,12 +344,12 @@ public class RouteService {
         if (newBest) {
             return "Nouveau meilleur temps";
         }
-        return duration == bestPrevious ? "A la seconde pres" : "Passage enregistre";
+        return duration == bestPrevious ? "À la seconde près" : "Passage enregistré";
     }
 
     private String messageOf(String routeName, Long bestPrevious, long duration, boolean newBest) {
         if (bestPrevious == null) {
-            return "Premier passage sur %s en %s. C'est le temps a battre."
+            return "Premier passage sur %s en %s. C'est le temps à battre."
                     .formatted(routeName, Wording.duration(duration));
         }
         if (newBest) {
@@ -359,7 +359,7 @@ public class RouteService {
         if (duration == bestPrevious) {
             return "Exactement ton meilleur temps sur %s. La prochaine sera la bonne.".formatted(routeName);
         }
-        return "%s de plus que ton record sur %s, qui reste a %s."
+        return "%s de plus que ton record sur %s, qui reste à %s."
                 .formatted(Wording.duration(duration - bestPrevious), routeName,
                         Wording.duration(bestPrevious));
     }

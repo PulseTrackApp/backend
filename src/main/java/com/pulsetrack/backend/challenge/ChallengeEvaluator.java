@@ -143,8 +143,8 @@ public class ChallengeEvaluator {
         return switch (alert) {
             case NONE -> "Dans les temps";
             case WATCH -> "Tu perds un peu de terrain";
-            case URGENT -> "L'echeance approche";
-            case LOST -> "L'echeance ne sera pas tenue";
+            case URGENT -> "L'échéance approche";
+            case LOST -> "L'échéance ne sera pas tenue";
         };
     }
 
@@ -160,15 +160,15 @@ public class ChallengeEvaluator {
                 Wording.distance(remainingDistance), Wording.duration(remainingSeconds));
 
         return switch (alert) {
-            case NONE -> reste + " : garde ce rythme et c'est plie.";
+            case NONE -> reste + " : garde ce rythme et c'est plié.";
             case WATCH -> requiredPace == null
                     ? reste + ". Il est temps de relancer."
-                    : reste + " : il faut passer a " + Wording.pace(requiredPace) + ".";
+                    : reste + " : il faut passer à " + Wording.pace(requiredPace) + ".";
             case URGENT -> requiredPace == null
                     ? reste + ". C'est maintenant ou jamais."
                     : reste + " : " + Wording.pace(requiredPace) + " pour tenir. Tout donner.";
             // Ni faux espoir, ni reproche : on propose une sortie honorable.
-            case LOST -> reste + ". Le chronometre ne passera pas, mais la distance, si. Va la chercher.";
+            case LOST -> reste + ". Le chronomètre ne passera pas, mais la distance, si. Va la chercher.";
         };
     }
 
@@ -234,11 +234,11 @@ public class ChallengeEvaluator {
         if (succeeded) {
             boolean comfortable = timeMargin >= targetDuration * COMFORTABLE_MARGIN;
             String message = timeMargin == 0
-                    ? "%s : pile a l'echeance.".formatted(fait)
-                    : "%s : %s de marge sur l'echeance.".formatted(fait, Wording.duration(timeMargin));
+                    ? "%s : pile à l'échéance.".formatted(fait)
+                    : "%s : %s de marge sur l'échéance.".formatted(fait, Wording.duration(timeMargin));
             return new Appreciation(
                     AppreciationTier.EXCELLENT,
-                    comfortable ? "Defi releve haut la main" : "Defi releve",
+                    comfortable ? "Défi relevé haut la main" : "Défi relevé",
                     message,
                     nextStepAdvice(challenge, comfortable, achievedPace));
         }
@@ -246,28 +246,28 @@ public class ChallengeEvaluator {
         if (nearMiss) {
             return new Appreciation(
                     AppreciationTier.BEHIND,
-                    "A quelques secondes pres",
+                    "À quelques secondes près",
                     "%s, pour un objectif de %s en %s. Il ne manquait presque rien."
                             .formatted(fait, Wording.distance(challenge.getTargetDistanceMeters()),
                                     Wording.duration(targetDuration)),
-                    "Retente le meme defi : a cet ecart, il tombe a la prochaine sortie.");
+                    "Retente le même défi : à cet écart, il tombe à la prochaine sortie.");
         }
 
         if (!distanceCovered) {
             return new Appreciation(
                     AppreciationTier.BEHIND,
                     "Distance non couverte",
-                    "%s sur les %s vises. La sortie compte quand meme."
+                    "%s sur les %s visés. La sortie compte quand même."
                             .formatted(fait, Wording.distance(challenge.getTargetDistanceMeters())),
-                    "Vise d'abord la distance sans chronometre, le temps viendra ensuite.");
+                    "Vise d'abord la distance sans chronomètre, le temps viendra ensuite.");
         }
 
         return new Appreciation(
                 AppreciationTier.BEHIND,
-                "Distance faite, echeance depassee",
-                "%s, soit %s de plus que l'echeance. La distance, elle, est bien couverte."
+                "Distance faite, échéance dépassée",
+                "%s, soit %s de plus que l'échéance. La distance, elle, est bien couverte."
                         .formatted(fait, Wording.duration(durationSeconds - targetDuration)),
-                "Reprends le meme defi avec %s de plus au compteur : le passage se fera."
+                "Reprends le même défi avec %s de plus au compteur : le passage se fera."
                         .formatted(Wording.duration(durationSeconds - targetDuration)));
     }
 

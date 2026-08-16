@@ -204,8 +204,8 @@ public class RatingCalculator {
         if (before == 0) {
             return component(RatingComponent.PROGRESSION, now > 0 ? 70 : NEUTRAL_SCORE,
                     now > 0
-                            ? "Premiere periode mesurable : rien a quoi se comparer encore."
-                            : "Pas encore de reference de progression.");
+                            ? "Première période mesurable : rien à quoi se comparer encore."
+                            : "Pas encore de référence de progression.");
         }
 
         double growth = (now - before) / (double) before;
@@ -233,7 +233,7 @@ public class RatingCalculator {
 
     private String describeGrowth(double growth, long now, long before) {
         if (Math.abs(growth) < 0.05) {
-            return "Volume stable par rapport aux quatre semaines precedentes.";
+            return "Volume stable par rapport aux quatre semaines précédentes.";
         }
         return growth > 0
                 ? "%s de plus qu'il y a quatre semaines.".formatted(Wording.duration(now - before))
@@ -274,14 +274,14 @@ public class RatingCalculator {
                 inputs.window().stream().mapToDouble(WorkoutStatsRow::distanceMeters).sum());
 
         String base = "%s et %s sur quatre semaines.".formatted(
-                Wording.plural(sessions, "seance", "seances"), volume);
+                Wording.plural(sessions, "séance", "séances"), volume);
 
         return switch (tier) {
-            case ATHLETE -> base + " Ce niveau de regularite est rare, tiens-le.";
-            case STRONG -> base + " La regularite est installee.";
-            case SOLID -> base + " Le rythme est la, il ne demande qu'a s'installer.";
-            case REGULAR -> base + " C'est la regularite qui paie, et elle commence a se voir.";
-            case STARTING, NEW -> base + " Le plus dur est fait : tu as commence.";
+            case ATHLETE -> base + " Ce niveau de régularité est rare, tiens-le.";
+            case STRONG -> base + " La régularité est installée.";
+            case SOLID -> base + " Le rythme est là, il ne demande qu'à s'installer.";
+            case REGULAR -> base + " C'est la régularité qui paie, et elle commence à se voir.";
+            case STARTING, NEW -> base + " Le plus dur est fait : tu as commencé.";
         };
     }
 
@@ -301,10 +301,10 @@ public class RatingCalculator {
         }
 
         String action = switch (weakest.key()) {
-            case REGULARITY -> "Vise une sortie de plus par semaine, meme courte : c'est ce qui compte le plus.";
-            case VOLUME -> "Allonge une sortie de dix minutes plutot que d'en ajouter une.";
-            case GOALS -> "Ton objectif hebdomadaire est peut-etre trop haut : baisse-le d'un cran et tiens-le.";
-            case PROGRESSION -> "Reprends simplement le volume des quatre semaines precedentes.";
+            case REGULARITY -> "Vise une sortie de plus par semaine, même courte : c'est ce qui compte le plus.";
+            case VOLUME -> "Allonge une sortie de dix minutes plutôt que d'en ajouter une.";
+            case GOALS -> "Ton objectif hebdomadaire est peut-être trop haut : baisse-le d'un cran et tiens-le.";
+            case PROGRESSION -> "Reprends simplement le volume des quatre semaines précédentes.";
         };
 
         return toNext == null || toNext == 0
@@ -319,8 +319,8 @@ public class RatingCalculator {
                 null,
                 RatingTier.NEW,
                 null,
-                "Aucune seance enregistree pour l'instant. La note apparaitra des la premiere.",
-                "Enregistre une premiere sortie, meme une marche de vingt minutes.",
+                "Aucune séance enregistrée pour l'instant. La note apparaîtra dès la première.",
+                "Enregistre une première sortie, même une marche de vingt minutes.",
                 WINDOW_DAYS,
                 today,
                 0,

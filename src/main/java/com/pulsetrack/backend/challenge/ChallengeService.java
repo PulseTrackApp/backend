@@ -94,7 +94,7 @@ public class ChallengeService {
         // Une date limite deja passee produirait un defi expire des sa creation.
         // Le refuser vaut mieux que de rendre un objet mort-ne.
         if (request.expiresOn() != null && request.expiresOn().isBefore(today())) {
-            throw new BusinessRuleException("La date limite doit etre dans le futur.");
+            throw new BusinessRuleException("La date limite doit être dans le futur.");
         }
 
         Challenge challenge = new Challenge(
@@ -139,10 +139,10 @@ public class ChallengeService {
         Challenge challenge = load(userId, challengeId);
 
         if (challenge.getStatus() == ChallengeStatus.ACTIVE) {
-            throw new ConflictException("Ce defi est deja en cours.");
+            throw new ConflictException("Ce défi est déjà en cours.");
         }
         if (challenge.getStatus().isSettled()) {
-            throw new ConflictException("Ce defi est termine, il ne peut plus etre lance.");
+            throw new ConflictException("Ce défi est terminé, il ne peut plus être lancé.");
         }
         // Deux echeances simultanees ne veulent rien dire, et l'ecran de course
         // n'en affiche qu'une. La base fait respecter la meme regle par un index
@@ -150,7 +150,7 @@ public class ChallengeService {
         Optional<Challenge> running = challenges.findByUserIdAndStatus(userId, ChallengeStatus.ACTIVE);
         if (running.isPresent()) {
             throw new ConflictException(
-                    "Un defi est deja en cours : « " + running.get().getTitle() + " ». Termine-le ou abandonne-le.");
+                    "Un défi est déjà en cours : « " + running.get().getTitle() + " ». Termine-le ou abandonne-le.");
         }
 
         challenge.start(clock.instant());
@@ -161,7 +161,7 @@ public class ChallengeService {
     public ChallengeResponse abandon(UUID userId, UUID challengeId) {
         Challenge challenge = load(userId, challengeId);
         if (challenge.getStatus().isSettled()) {
-            throw new ConflictException("Ce defi est deja termine.");
+            throw new ConflictException("Ce défi est déjà terminé.");
         }
         challenge.abandon(clock.instant());
         return toResponse(challenge);
@@ -180,7 +180,7 @@ public class ChallengeService {
     public ChallengeProgressResponse progress(UUID userId, UUID challengeId, ChallengeProgressRequest request) {
         Challenge challenge = load(userId, challengeId);
         if (challenge.getStatus().isSettled()) {
-            throw new ConflictException("Ce defi est termine.");
+            throw new ConflictException("Ce défi est terminé.");
         }
         return evaluator.progressOf(challenge, request.elapsedSeconds(), request.distanceMeters());
     }
@@ -195,12 +195,12 @@ public class ChallengeService {
     public ChallengeResponse complete(UUID userId, UUID challengeId, CompleteChallengeRequest request) {
         Challenge challenge = load(userId, challengeId);
         if (challenge.getStatus().isSettled()) {
-            throw new ConflictException("Ce defi est deja termine.");
+            throw new ConflictException("Ce défi est déjà terminé.");
         }
 
         if (request.referencesWorkout()) {
             WorkoutSession workout = sessions.findByIdAndUserId(request.workoutId(), userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Seance introuvable."));
+                    .orElseThrow(() -> new ResourceNotFoundException("Séance introuvable."));
             settle(challenge, workout.getDistanceMeters(), workout.getMovingDurationSeconds(),
                     workout.getId(), false);
             return toResponse(challenge);
@@ -208,7 +208,7 @@ public class ChallengeService {
 
         if (!request.isDeclared()) {
             throw new BusinessRuleException(
-                    "Indique la seance qui regle ce defi, ou bien la distance et la duree realisees.");
+                    "Indique la séance qui règle ce défi, ou bien la distance et la durée réalisées.");
         }
         settle(challenge, request.distanceMeters(), request.durationSeconds(), null, false);
         return toResponse(challenge);
@@ -292,7 +292,7 @@ public class ChallengeService {
 
     private Challenge load(UUID userId, UUID challengeId) {
         return challenges.findByIdAndUserId(challengeId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Defi introuvable."));
+                .orElseThrow(() -> new ResourceNotFoundException("Défi introuvable."));
     }
 
     /**

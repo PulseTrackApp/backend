@@ -156,7 +156,7 @@ public class CoachService {
     private GeminiSettingsService.ActiveGeminiAccess requireUsableAssistant(UUID userId) {
         return settingsService.activeAccessOf(userId)
                 .orElseThrow(() -> new BusinessRuleException(
-                        "L'assistant n'est pas configure. Ajoutez votre cle API dans les parametres."));
+                        "L'assistant n'est pas configuré. Ajoutez votre clé API dans les paramètres."));
     }
 
     private CoachContext buildContext(UUID userId, LocalDate weekStart, ZoneId zone) {

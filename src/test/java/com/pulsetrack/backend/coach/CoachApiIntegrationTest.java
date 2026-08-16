@@ -146,7 +146,7 @@ class CoachApiIntegrationTest extends AbstractApiIntegrationTest {
         mockMvc.perform(post("/api/v1/me/coach/weekly-review").header("Authorization", token))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.detail").value(
-                        "L'assistant n'est pas configure. Ajoutez votre cle API dans les parametres."));
+                        "L'assistant n'est pas configuré. Ajoutez votre clé API dans les paramètres."));
 
         // Et surtout : aucun appel n'a ete tente.
         verify(geminiClient, never()).generate(anyString(), anyString(), anyString());

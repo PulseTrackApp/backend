@@ -52,7 +52,7 @@ class PasswordResetApiIntegrationTest extends AbstractApiIntegrationTest {
         resetTo("ABCD2345", "nouveaumotdepasse456")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail")
-                        .value("Ce code de reinitialisation est invalide ou a expire."));
+                        .value("Ce code de réinitialisation est invalide ou a expiré."));
     }
 
     @Test

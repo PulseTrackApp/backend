@@ -18,7 +18,7 @@ public class ClientUpgradeRequiredException extends RuntimeException {
     private final String storeUrl;
 
     public ClientUpgradeRequiredException(String minimumVersion, String currentVersion, String storeUrl) {
-        super("Cette version de l'application n'est plus acceptee. Mets-la a jour pour continuer.");
+        super("Cette version de l'application n'est plus acceptée. Mets-la à jour pour continuer.");
         this.minimumVersion = minimumVersion;
         this.currentVersion = currentVersion;
         this.storeUrl = storeUrl;

@@ -38,17 +38,17 @@ public class MailResetCodeSender implements ResetCodeSender {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(email);
-        message.setSubject("GymFlow - code de reinitialisation");
+        message.setSubject("GymFlow - code de réinitialisation");
         message.setText(body(code));
 
         try {
             mailSender.send(message);
-            log.info("Code de reinitialisation envoye.");
+            log.info("Code de réinitialisation envoyé.");
         } catch (Exception ex) {
             // Volontairement large : un SMTP echoue de mille manieres, et
             // aucune ne peut plus etre signalee a l'appelant. L'adresse n'est
             // pas journalisee — elle designerait un compte existant.
-            log.error("Envoi du code de reinitialisation impossible", ex);
+            log.error("Envoi du code de réinitialisation impossible", ex);
         }
     }
 
@@ -61,15 +61,15 @@ public class MailResetCodeSender implements ResetCodeSender {
         return """
                 Bonjour,
 
-                Voici votre code de reinitialisation GymFlow :
+                Voici votre code de réinitialisation GymFlow :
 
                     %s
 
                 Saisissez-le dans l'application pour choisir un nouveau mot de passe.
                 Il est valable %d minutes et ne peut servir qu'une seule fois.
 
-                Si vous n'avez rien demande, ignorez ce message : votre mot de
-                passe reste inchange.
+                Si vous n'avez rien demandé, ignorez ce message : votre mot de
+                passe reste inchangé.
                 """.formatted(code, validity.toMinutes());
     }
 }

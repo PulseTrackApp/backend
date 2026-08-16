@@ -56,7 +56,7 @@ class WorkoutApiIntegrationTest extends AbstractApiIntegrationTest {
                         .content(runWithTrackBody()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value(
-                        "Renseignez votre profil (poids, taille) avant d'enregistrer une seance."));
+                        "Renseignez votre profil (poids, taille) avant d'enregistrer une séance."));
     }
 
     @Test
@@ -77,7 +77,7 @@ class WorkoutApiIntegrationTest extends AbstractApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.title").value("Regle metier non respectee"));
+                .andExpect(jsonPath("$.title").value("Règle métier non respectée"));
     }
 
     @Test

@@ -41,7 +41,7 @@ class RatingCalculatorTest {
         assertThat(rating.tier()).isEqualTo(RatingTier.NEW);
         assertThat(rating.score()).isNull();
         assertThat(rating.grade()).isNull();
-        assertThat(rating.message()).contains("La note apparaitra des la premiere");
+        assertThat(rating.message()).contains("La note apparaîtra dès la première");
         assertThat(rating.components()).isEmpty();
     }
 
@@ -104,7 +104,7 @@ class RatingCalculatorTest {
         RatingResponse.Component progression = componentOf(rating, RatingComponent.PROGRESSION);
         // Ne pas avoir progresse faute de passe n'est pas un defaut.
         assertThat(progression.score()).isEqualTo(70);
-        assertThat(progression.comment()).contains("rien a quoi se comparer");
+        assertThat(progression.comment()).contains("rien à quoi se comparer");
     }
 
     @Test

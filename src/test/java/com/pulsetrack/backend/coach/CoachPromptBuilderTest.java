@@ -77,7 +77,7 @@ class CoachPromptBuilderTest {
         String prompt = builder.weeklyReviewPrompt(context(withCheckIns(), sessions()));
 
         assertThat(prompt)
-                .contains("Seances : 2")
+                .contains("Séances : 2")
                 .contains("12.0 km")
                 .contains("900 kcal")
                 .contains("Jours consecutifs avec activite : 3")
@@ -130,7 +130,7 @@ class CoachPromptBuilderTest {
     void supporte_une_absence_totale_de_seance() {
         CoachContext empty = new CoachContext(profile(), week(List.of()), withoutCheckIns(), List.of());
 
-        assertThat(builder.weeklyReviewPrompt(empty)).contains("Aucune seance enregistree.");
+        assertThat(builder.weeklyReviewPrompt(empty)).contains("Aucune séance enregistrée.");
     }
 
     // --- Fabriques de contexte ----------------------------------------------

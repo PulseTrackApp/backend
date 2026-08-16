@@ -90,7 +90,7 @@ class ChallengeEvaluatorTest {
         ChallengeResponse.Result tooSlow = evaluator.evaluate(challenge, 10_100, 3_600, false);
         ChallengeResponse.Result tooShort = evaluator.evaluate(challenge, 7_000, 3_000, false);
 
-        assertThat(tooSlow.appreciation().headline()).isEqualTo("Distance faite, echeance depassee");
+        assertThat(tooSlow.appreciation().headline()).isEqualTo("Distance faite, échéance dépassée");
         assertThat(tooShort.appreciation().headline()).isEqualTo("Distance non couverte");
     }
 

@@ -71,7 +71,7 @@ public class DeviceTokenService {
                 delivered++;
             } else {
                 tokens.delete(device);
-                log.info("Jeton perime supprime pour l'utilisateur {}", userId);
+                log.info("Jeton périmé supprimé pour l'utilisateur {}", userId);
             }
         }
         return delivered;

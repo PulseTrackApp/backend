@@ -74,7 +74,7 @@ public class PasswordResetService {
         if (account.isEmpty()) {
             // Journalise sans l'adresse : la trace ne doit pas devenir la liste
             // des adresses testees par un curieux.
-            log.info("Demande de reinitialisation pour une adresse inconnue, ignoree.");
+            log.info("Demande de réinitialisation pour une adresse inconnue, ignorée.");
             return;
         }
 
@@ -104,7 +104,7 @@ public class PasswordResetService {
                 .orElseThrow(() -> new InvalidResetCodeException("Code inconnu."));
 
         if (token.isUsed() || token.hasExpiredAt(now)) {
-            throw new InvalidResetCodeException("Code perime ou deja utilise.");
+            throw new InvalidResetCodeException("Code périmé ou déjà utilisé.");
         }
 
         User user = users.findById(token.getUserId())

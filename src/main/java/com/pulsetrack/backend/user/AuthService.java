@@ -71,7 +71,7 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
         if (users.existsByEmail(email)) {
-            throw new ConflictException("Un compte existe deja pour cet email.");
+            throw new ConflictException("Un compte existe déjà pour cet email.");
         }
 
         User user = users.save(new User(email, passwordEncoder.encode(request.password()), Instant.now()));
@@ -176,7 +176,7 @@ public class AuthService {
     private void requireVerifiedEmail(User user) {
         if (verifiedEmailRequired && !user.isEmailVerified()) {
             throw new EmailNotVerifiedException(
-                    "Confirmez votre adresse email avec le code recu par courriel.");
+                    "Confirmez votre adresse email avec le code reçu par courriel.");
         }
     }
 

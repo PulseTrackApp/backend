@@ -40,7 +40,7 @@ class SessionExpiryApiIntegrationTest extends AbstractApiIntegrationTest {
         mockMvc.perform(get("/api/v1/me/modules").header("Authorization", expired))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.type").value("https://pulsetrack.app/problems/token-expired"))
-                .andExpect(jsonPath("$.title").value("Session expiree"))
+                .andExpect(jsonPath("$.title").value("Session expirée"))
                 .andExpect(jsonPath("$.detail").isNotEmpty())
                 // L'en-tete exige par la RFC 6750 reste pose : on habille la
                 // reponse standard, on ne la remplace pas.

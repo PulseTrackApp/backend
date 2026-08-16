@@ -71,7 +71,7 @@ class ReminderDeciderTest {
                 goal(GoalType.WEEKLY_DISTANCE, "km", 20, 6, 30.0, false));
 
         assertThat(decider.effortWarningMessage(goals))
-                .contains("Il te reste 14 km a faire pour tenir ton objectif de la semaine.");
+                .contains("Il te reste 14 km à faire pour tenir ton objectif de la semaine.");
     }
 
     @Test
@@ -79,10 +79,10 @@ class ReminderDeciderTest {
         // Une notification qui enumere tous les manques se fait ignorer.
         List<GoalProgressResponse> goals = List.of(
                 goal(GoalType.WEEKLY_DISTANCE, "km", 20, 10, 50.0, false),
-                goal(GoalType.WEEKLY_SESSIONS, "seances", 4, 1, 25.0, false));
+                goal(GoalType.WEEKLY_SESSIONS, "séances", 4, 1, 25.0, false));
 
         assertThat(decider.effortWarningMessage(goals))
-                .contains("Il te reste 3 seances a faire pour tenir ton objectif de la semaine.");
+                .contains("Il te reste 3 séances à faire pour tenir ton objectif de la semaine.");
     }
 
     @Test

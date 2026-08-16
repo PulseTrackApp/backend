@@ -16,7 +16,7 @@ public class SubscriptionRequiredException extends RuntimeException {
     private final transient PlanResponse suggestedPlan;
 
     public SubscriptionRequiredException(SubscriptionStatus status, PlanResponse suggestedPlan) {
-        super("Ton acces est arrive a echeance. Choisis une formule pour continuer.");
+        super("Ton accès est arrivé à échéance. Choisis une formule pour continuer.");
         this.status = status;
         this.suggestedPlan = suggestedPlan;
     }

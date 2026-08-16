@@ -53,7 +53,7 @@ public class WeeklyAppreciator {
 
         String done = "%s en %s".formatted(
                 Wording.distance(current.distanceMeters()),
-                Wording.plural(current.sessionCount(), "seance", "seances"));
+                Wording.plural(current.sessionCount(), "séance", "séances"));
         String versus = comparedToPrevious(current, previous);
 
         return goals.isEmpty()
@@ -71,14 +71,14 @@ public class WeeklyAppreciator {
             return new Appreciation(
                     AppreciationTier.ON_TRACK,
                     "La semaine commence",
-                    "Rien encore cette semaine, et c'est normal a ce stade.",
-                    "Vingt minutes suffisent a lancer une semaine.");
+                    "Rien encore cette semaine, et c'est normal à ce stade.",
+                    "Vingt minutes suffisent à lancer une semaine.");
         }
         return new Appreciation(
                 goals.isEmpty() ? AppreciationTier.BEHIND : AppreciationTier.AT_RISK,
                 "Semaine sans sortie",
-                "Aucune seance enregistree cette semaine.",
-                "Le plus dur est de sortir : une marche de vingt minutes compte deja.");
+                "Aucune séance enregistrée cette semaine.",
+                "Le plus dur est de sortir : une marche de vingt minutes compte déjà.");
     }
 
     private Appreciation withGoals(List<GoalProgressResponse> goals, String done, String versus) {
@@ -130,8 +130,8 @@ public class WeeklyAppreciator {
         // Premiere semaine mesurable : rien a quoi se comparer, et rien de moins
         // encourageant que de se voir reprocher un point de depart.
         if (previous.sessionCount() == 0) {
-            return new Appreciation(AppreciationTier.GOOD, "Semaine lancee", done + ".",
-                    "Fixe-toi un objectif hebdomadaire : la semaine prochaine aura une reference.");
+            return new Appreciation(AppreciationTier.GOOD, "Semaine lancée", done + ".",
+                    "Fixe-toi un objectif hebdomadaire : la semaine prochaine aura une référence.");
         }
 
         double ratio = previous.distanceMeters() > 0
@@ -139,16 +139,16 @@ public class WeeklyAppreciator {
                 : Double.MAX_VALUE;
 
         if (ratio >= 1 + PROGRESS_MARGIN) {
-            return new Appreciation(AppreciationTier.GOOD, "Mieux que la semaine derniere",
+            return new Appreciation(AppreciationTier.GOOD, "Mieux que la semaine dernière",
                     done + versus, null);
         }
         if (ratio >= 1 - PROGRESS_MARGIN) {
-            return new Appreciation(AppreciationTier.ON_TRACK, "Semaine reguliere",
+            return new Appreciation(AppreciationTier.ON_TRACK, "Semaine régulière",
                     done + versus, null);
         }
-        return new Appreciation(AppreciationTier.BEHIND, "En dessous de la semaine derniere",
+        return new Appreciation(AppreciationTier.BEHIND, "En dessous de la semaine dernière",
                 done + versus,
-                "Une sortie de plus suffirait a repasser au-dessus.");
+                "Une sortie de plus suffirait à repasser au-dessus.");
     }
 
     private String comparedToPrevious(WorkoutTotals.Normalized current, WorkoutTotals.Normalized previous) {
@@ -157,20 +157,20 @@ public class WeeklyAppreciator {
             return ".";
         }
         if (Math.abs(delta) < 100) {
-            return ", soit autant que la semaine derniere.";
+            return ", soit autant que la semaine dernière.";
         }
         return delta > 0
-                ? ", soit %s de plus que la semaine derniere.".formatted(Wording.distance(delta))
-                : ", soit %s de moins que la semaine derniere.".formatted(Wording.distance(-delta));
+                ? ", soit %s de plus que la semaine dernière.".formatted(Wording.distance(delta))
+                : ", soit %s de moins que la semaine dernière.".formatted(Wording.distance(-delta));
     }
 
     private String headlineOf(AppreciationTier tier) {
         return switch (tier) {
-            case EXCELLENT -> "Objectifs depasses";
+            case EXCELLENT -> "Objectifs dépassés";
             case GOOD -> "Bonne semaine";
             case ON_TRACK -> "Dans les temps";
             case BEHIND -> "Un peu en retard";
-            case AT_RISK -> "Les objectifs s'eloignent";
+            case AT_RISK -> "Les objectifs s'éloignent";
             case NO_DATA -> "Semaine en cours";
         };
     }

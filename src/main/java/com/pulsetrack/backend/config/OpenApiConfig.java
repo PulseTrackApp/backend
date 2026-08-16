@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
         info = @Info(
                 title = "PulseTrack API",
                 version = "v1",
-                description = "Suivi sportif personnel : comptes, profils et seances."),
+                description = "Suivi sportif personnel : comptes, profils et séances."),
         security = @SecurityRequirement(name = "bearerAuth"))
 @SecurityScheme(
         name = "bearerAuth",

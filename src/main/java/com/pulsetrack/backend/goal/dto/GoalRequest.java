@@ -17,7 +17,7 @@ import jakarta.validation.constraints.NotNull;
  */
 public record GoalRequest(
         @NotNull GoalType type,
-        @DecimalMin(value = "0.0", inclusive = false, message = "la cible doit etre strictement positive")
+        @DecimalMin(value = "0.0", inclusive = false, message = "la cible doit être strictement positive")
         @DecimalMax("100000.0")
         double targetValue,
         LocalDate startDate,

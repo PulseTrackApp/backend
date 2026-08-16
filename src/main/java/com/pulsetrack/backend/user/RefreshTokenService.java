@@ -92,13 +92,13 @@ public class RefreshTokenService {
                 .orElseThrow(() -> new InvalidRefreshTokenException("Jeton de renouvellement inconnu."));
 
         if (token.isRevoked()) {
-            log.warn("Jeton de renouvellement deja consomme presente pour le compte {} : "
+            log.warn("Jeton de renouvellement déjà consommé présenté pour le compte {} : "
                     + "toutes ses sessions sont revoquees par precaution.", token.getUserId());
             revokeAllFor(token.getUserId(), now);
-            throw new InvalidRefreshTokenException("Jeton de renouvellement deja utilise.");
+            throw new InvalidRefreshTokenException("Jeton de renouvellement déjà utilisé.");
         }
         if (token.hasExpiredAt(now)) {
-            throw new InvalidRefreshTokenException("Jeton de renouvellement expire.");
+            throw new InvalidRefreshTokenException("Jeton de renouvellement expiré.");
         }
 
         token.revokeAt(now);

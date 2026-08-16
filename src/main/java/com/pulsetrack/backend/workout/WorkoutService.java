@@ -71,7 +71,7 @@ public class WorkoutService {
     @Transactional
     public Recorded create(UUID userId, CreateWorkoutRequest request) {
         if (!request.endedAt().isAfter(request.startedAt())) {
-            throw new BusinessRuleException("La fin de seance doit etre posterieure au debut.");
+            throw new BusinessRuleException("La fin de séance doit être postérieure au début.");
         }
 
         UUID id = request.id();
@@ -90,7 +90,7 @@ public class WorkoutService {
             // sinon l'insertion viole la cle primaire et remonte en 500. Le
             // message ne dit pas a qui il appartient.
             if (sessions.existsById(id)) {
-                throw new ConflictException("Cet identifiant de seance est deja utilise.");
+                throw new ConflictException("Cet identifiant de séance est déjà utilisé.");
             }
         }
 
@@ -220,7 +220,7 @@ public class WorkoutService {
     public WorkoutResponse getById(UUID userId, UUID workoutId) {
         return sessions.findByIdAndUserId(workoutId, userId)
                 .map(this::toDetail)
-                .orElseThrow(() -> new ResourceNotFoundException("Seance introuvable."));
+                .orElseThrow(() -> new ResourceNotFoundException("Séance introuvable."));
     }
 
     /**
@@ -245,7 +245,7 @@ public class WorkoutService {
     @Transactional
     public void delete(UUID userId, UUID workoutId) {
         WorkoutSession session = sessions.findByIdAndUserId(workoutId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Seance introuvable."));
+                .orElseThrow(() -> new ResourceNotFoundException("Séance introuvable."));
         // Le defi garde son verdict et perd seulement le lien vers la seance :
         // effacer une reussite parce que la trace a disparu serait une punition.
         challengeService.detachFromWorkout(userId, workoutId);

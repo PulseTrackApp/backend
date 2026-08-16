@@ -100,7 +100,7 @@ public class AdminUserService {
     public AdminUserResponse replaceModules(UUID userId, Set<AppModule> modules, UUID actingAdminId) {
         User user = require(userId);
         Set<AppModule> granted = moduleAccess.replace(userId, modules);
-        log.info("Administrateur {} a fixe les modules du compte {} a {}", actingAdminId, userId, granted);
+        log.info("Administrateur {} a fixé les modules du compte {} à {}", actingAdminId, userId, granted);
         return toResponse(user, sorted(granted));
     }
 
@@ -119,7 +119,7 @@ public class AdminUserService {
         User user = require(userId);
         user.changeRole(role);
         users.save(user);
-        log.info("Administrateur {} a fixe le role du compte {} a {}", actingAdminId, userId, role);
+        log.info("Administrateur {} a fixé le rôle du compte {} à {}", actingAdminId, userId, role);
         return toResponse(user, modulesOf(List.of(userId)).getOrDefault(userId, List.of()));
     }
 
@@ -141,7 +141,7 @@ public class AdminUserService {
         User user = require(userId);
         users.delete(user);
         moduleAccess.evict(userId);
-        log.info("Administrateur {} a supprime le compte {}", actingAdminId, userId);
+        log.info("Administrateur {} a supprimé le compte {}", actingAdminId, userId);
     }
 
     @Transactional(readOnly = true)

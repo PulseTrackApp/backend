@@ -41,10 +41,10 @@ public class MailVerificationCodeSender implements VerificationCodeSender {
 
         try {
             mailSender.send(message);
-            log.info("Code de verification envoye.");
+            log.info("Code de vérification envoyé.");
         } catch (Exception ex) {
             // Volontairement large, et sans l'adresse : voir MailResetCodeSender.
-            log.error("Envoi du code de verification impossible", ex);
+            log.error("Envoi du code de vérification impossible", ex);
         }
     }
 
@@ -63,9 +63,9 @@ public class MailVerificationCodeSender implements VerificationCodeSender {
                 Saisissez-le dans l'application pour confirmer votre adresse.
                 Il est valable %d heures.
 
-                Cette confirmation garantit que vous pourrez recuperer votre
+                Cette confirmation garantit que vous pourrez récupérer votre
                 compte si vous oubliez votre mot de passe. Si vous n'avez pas
-                cree de compte GymFlow, ignorez ce message.
+                créé de compte GymFlow, ignorez ce message.
                 """.formatted(code, validity.toHours());
     }
 }

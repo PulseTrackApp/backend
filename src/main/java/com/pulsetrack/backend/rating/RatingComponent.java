@@ -16,7 +16,7 @@ package com.pulsetrack.backend.rating;
  */
 public enum RatingComponent {
 
-    REGULARITY("Regularite", 30),
+    REGULARITY("Régularité", 30),
     VOLUME("Volume", 25),
     GOALS("Objectifs", 25),
     PROGRESSION("Progression", 20);

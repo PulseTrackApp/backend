@@ -132,7 +132,7 @@ public class GoalProgressCalculator {
             return new GoalProgressResponse(goal.getId(), GoalType.TARGET_WEIGHT,
                     GoalType.TARGET_WEIGHT.unit(), round(target), null, null, null, false,
                     null, false, null,
-                    Appreciation.noData("Note ton poids une premiere fois pour suivre cet objectif."));
+                    Appreciation.noData("Note ton poids une première fois pour suivre cet objectif."));
         }
 
         double remaining = Math.abs(currentKg - target);
@@ -185,16 +185,16 @@ public class GoalProgressCalculator {
                     AppreciationTier.EXCELLENT,
                     "Objectif atteint",
                     completion > 105
-                            ? "%s de l'objectif : tu l'as depasse.".formatted(Wording.percent(completion))
+                            ? "%s de l'objectif : tu l'as dépassé.".formatted(Wording.percent(completion))
                             : "Objectif tenu.",
                     "Le prochain palier serait %s %s."
                             .formatted(Wording.decimal(target * 1.1, 1), unit));
         }
 
         double delta = completion - elapsedPercent;
-        String situation = "%s de l'objectif a %s de la semaine ecoulee."
+        String situation = "%s de l'objectif à %s de la semaine écoulée."
                 .formatted(Wording.percent(completion), Wording.percent(elapsedPercent));
-        String reste = "Il reste %s %s a faire.".formatted(Wording.decimal(remaining, 1), unit);
+        String reste = "Il reste %s %s à faire.".formatted(Wording.decimal(remaining, 1), unit);
 
         if (delta >= AHEAD_MARGIN) {
             return new Appreciation(AppreciationTier.GOOD, "En avance", situation,
@@ -209,8 +209,8 @@ public class GoalProgressCalculator {
         }
         // Le pire verdict reste un constat, jamais un reproche : une application
         // qui gronde se desinstalle.
-        return new Appreciation(AppreciationTier.AT_RISK, "L'objectif s'eloigne", situation,
-                reste + " Une seance de plus change tout.");
+        return new Appreciation(AppreciationTier.AT_RISK, "L'objectif s'éloigne", situation,
+                reste + " Une séance de plus change tout.");
     }
 
     private String projectionAdvice(Double projected, double target, String unit) {
@@ -218,9 +218,9 @@ public class GoalProgressCalculator {
             return null;
         }
         return projected >= target
-                ? "A ce rythme tu finis a %s %s, au-dessus de la cible."
+                ? "À ce rythme tu finis à %s %s, au-dessus de la cible."
                         .formatted(Wording.decimal(projected, 1), unit)
-                : "A ce rythme tu finis a %s %s : il manquerait %s %s."
+                : "À ce rythme tu finis à %s %s : il manquerait %s %s."
                         .formatted(Wording.decimal(projected, 1), unit,
                                 Wording.decimal(target - projected, 1), unit);
     }
@@ -228,23 +228,23 @@ public class GoalProgressCalculator {
     private Appreciation weightAppreciation(boolean achieved, Double completion, double remaining, double target) {
         if (achieved) {
             return new Appreciation(AppreciationTier.EXCELLENT, "Poids cible atteint",
-                    "Tu es a %s kg, ta cible.".formatted(Wording.decimal(target, 1)),
-                    "Le maintien compte autant que la descente : garde le rythme des seances.");
+                    "Tu es à %s kg, ta cible.".formatted(Wording.decimal(target, 1)),
+                    "Le maintien compte autant que la descente : garde le rythme des séances.");
         }
         String reste = "Il reste %s kg avant la cible.".formatted(Wording.decimal(remaining, 1));
         if (completion == null) {
             return new Appreciation(AppreciationTier.ON_TRACK, "En route", reste, null);
         }
         if (completion >= 50) {
-            return new Appreciation(AppreciationTier.GOOD, "Plus de la moitie du chemin",
+            return new Appreciation(AppreciationTier.GOOD, "Plus de la moitié du chemin",
                     "%s du chemin parcouru. %s".formatted(Wording.percent(completion), reste), null);
         }
         if (completion > 0) {
             return new Appreciation(AppreciationTier.ON_TRACK, "En route",
                     "%s du chemin parcouru. %s".formatted(Wording.percent(completion), reste), null);
         }
-        return new Appreciation(AppreciationTier.BEHIND, "Le chemin n'a pas commence", reste,
-                "Le poids bouge lentement : c'est la regularite des seances qui le fait bouger.");
+        return new Appreciation(AppreciationTier.BEHIND, "Le chemin n'a pas commencé", reste,
+                "Le poids bouge lentement : c'est la régularité des séances qui le fait bouger.");
     }
 
     /** Une fraction de semaine hors de [0, 1] n'existe pas ; on la ramene dedans. */

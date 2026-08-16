@@ -12,7 +12,7 @@ public class ModuleLockedException extends RuntimeException {
     private final transient AppModule module;
 
     public ModuleLockedException(AppModule module) {
-        super("Le module " + module.name() + " n'est pas active sur ce compte.");
+        super("Le module " + module.name() + " n'est pas activé sur ce compte.");
         this.module = module;
     }
 

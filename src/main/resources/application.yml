@@ -256,8 +256,8 @@ pulsetrack:
         availability: 'COMING_SOON'
         highlighted: false
         features:
-          - 'Seances illimitees et trace GPS'
-          - 'Defis, parcours et records'
+          - 'Séances illimitées et trace GPS'
+          - 'Défis, parcours et records'
           - 'Statistiques et bilan hebdomadaire'
           - 'Assistant de coaching'
       - code: 'YEARLY'
@@ -271,7 +271,7 @@ pulsetrack:
         features:
           - 'Tout le mensuel'
           - 'Deux mois offerts'
-          - 'Export de tes donnees'
+          - 'Export de tes données'
 
   reminders:
     enabled: true

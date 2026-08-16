@@ -61,7 +61,7 @@ public class AdminBootstrap implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         if (!properties.hasAdminEmail()) {
-            log.info("Aucun compte administrateur configure : l'espace d'administration reste ferme.");
+            log.info("Aucun compte administrateur configuré : l'espace d'administration reste fermé.");
             return;
         }
 
@@ -81,14 +81,14 @@ public class AdminBootstrap implements ApplicationRunner {
         }
         user.changeRole(Role.ADMIN);
         users.save(user);
-        log.info("Compte {} promu administrateur au demarrage.", user.getId());
+        log.info("Compte {} promu administrateur au démarrage.", user.getId());
     }
 
     private void create(String email) {
         if (!properties.hasAdminPassword()) {
             // Etat normal tant que le compte n'a pas ete cree depuis
             // l'application : la promotion aura lieu a l'inscription.
-            log.info("Compte administrateur declare mais pas encore inscrit ; il le sera a sa creation.");
+            log.info("Compte administrateur déclaré mais pas encore inscrit ; il le sera à sa création.");
             return;
         }
 
@@ -98,8 +98,8 @@ public class AdminBootstrap implements ApplicationRunner {
             // d'API tous les utilisateurs de l'application mobile — la lecon de
             // PULSETRACK_FCM_ENABLED, qui avait fait tomber l'application
             // entiere pour une fonction secondaire.
-            log.error("Mot de passe d'amorçage trop court ({} caracteres, minimum {}) :"
-                            + " le compte administrateur n'a pas ete cree.",
+            log.error("Mot de passe d'amorçage trop court ({} caractères, minimum {}) :"
+                            + " le compte administrateur n'a pas été créé.",
                     properties.adminPassword().length(), AccessProperties.MIN_PASSWORD_LENGTH);
             return;
         }
@@ -114,7 +114,7 @@ public class AdminBootstrap implements ApplicationRunner {
         User saved = users.save(admin);
         moduleAccess.grantDefaults(saved.getId());
 
-        log.info("Compte administrateur {} cree au demarrage a partir du mot de passe d'amorçage."
+        log.info("Compte administrateur {} créé au démarrage à partir du mot de passe d'amorçage."
                 + " Changez ce mot de passe puis retirez la variable de l'environnement :"
                 + " elle reste lisible en clair dans la configuration de la plateforme.", saved.getId());
     }

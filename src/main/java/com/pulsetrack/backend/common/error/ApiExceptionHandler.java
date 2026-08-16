@@ -56,7 +56,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BusinessRuleException.class)
     ProblemDetail handleBusinessRule(BusinessRuleException ex) {
-        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Regle metier non respectee",
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Règle métier non respectée",
                 ex.getMessage(), "business-rule");
     }
 
@@ -75,7 +75,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(ClientUpgradeRequiredException.class)
     ProblemDetail handleClientUpgradeRequired(ClientUpgradeRequiredException ex) {
-        ProblemDetail body = problem(HttpStatus.UPGRADE_REQUIRED, "Mise a jour requise",
+        ProblemDetail body = problem(HttpStatus.UPGRADE_REQUIRED, "Mise à jour requise",
                 ex.getMessage(), "client-upgrade-required");
         body.setProperty("minimumVersion", ex.minimumVersion());
         // Presente meme nulle : le client sait alors que l'ancienne application
@@ -102,7 +102,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ModuleLockedException.class)
     ProblemDetail handleModuleLocked(ModuleLockedException ex) {
-        ProblemDetail body = problem(HttpStatus.FORBIDDEN, "Fonctionnalite non activee",
+        ProblemDetail body = problem(HttpStatus.FORBIDDEN, "Fonctionnalité non activée",
                 ex.getMessage(), "module-locked");
         body.setProperty("module", ex.module().name());
         return body;
@@ -133,7 +133,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(ExternalServiceException.class)
     ProblemDetail handleExternalService(ExternalServiceException ex) {
-        log.warn("Appel a un service tiers en echec : {}", ex.getMessage());
+        log.warn("Appel à un service tiers en échec : {}", ex.getMessage());
         return problem(HttpStatus.BAD_GATEWAY, "Service indisponible", ex.getMessage(), "external-service");
     }
 
@@ -141,7 +141,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail handleBadCredentials(BadCredentialsException ex) {
         // Message volontairement vague : distinguer "email inconnu" de "mot de
         // passe faux" permettrait d'enumerer les comptes existants.
-        return problem(HttpStatus.UNAUTHORIZED, "Authentification refusee",
+        return problem(HttpStatus.UNAUTHORIZED, "Authentification refusée",
                 "Email ou mot de passe incorrect.", "bad-credentials");
     }
 
@@ -152,8 +152,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(InvalidRefreshTokenException.class)
     ProblemDetail handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
-        return problem(HttpStatus.UNAUTHORIZED, "Session expiree",
-                "Session expiree, veuillez vous reconnecter.", "invalid-refresh-token");
+        return problem(HttpStatus.UNAUTHORIZED, "Session expirée",
+                "Session expirée, veuillez vous reconnecter.", "invalid-refresh-token");
     }
 
     /**
@@ -163,7 +163,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidResetCodeException.class)
     ProblemDetail handleInvalidResetCode(InvalidResetCodeException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Code invalide",
-                "Ce code de reinitialisation est invalide ou a expire.", "invalid-reset-code");
+                "Ce code de réinitialisation est invalide ou a expiré.", "invalid-reset-code");
     }
 
     /**
@@ -173,7 +173,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidVerificationCodeException.class)
     ProblemDetail handleInvalidVerificationCode(InvalidVerificationCodeException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Code invalide",
-                "Ce code de verification est invalide ou a expire.", "invalid-verification-code");
+                "Ce code de vérification est invalide ou a expiré.", "invalid-verification-code");
     }
 
     /**
@@ -183,7 +183,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(EmailNotVerifiedException.class)
     ProblemDetail handleEmailNotVerified(EmailNotVerifiedException ex) {
-        return problem(HttpStatus.FORBIDDEN, "Adresse non verifiee", ex.getMessage(), "email-not-verified");
+        return problem(HttpStatus.FORBIDDEN, "Adresse non vérifiée", ex.getMessage(), "email-not-verified");
     }
 
     /**
@@ -193,7 +193,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(DateTimeException.class)
     ProblemDetail handleDateTime(DateTimeException ex) {
-        return problem(HttpStatus.BAD_REQUEST, "Requete invalide",
+        return problem(HttpStatus.BAD_REQUEST, "Requête invalide",
                 "Date ou fuseau horaire invalide.", "invalid-datetime");
     }
 
@@ -206,8 +206,8 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     ProblemDetail handleAccessDenied(AccessDeniedException ex) {
-        return problem(HttpStatus.FORBIDDEN, "Acces refuse",
-                "Vous n'avez pas les droits necessaires.", "access-denied");
+        return problem(HttpStatus.FORBIDDEN, "Accès refusé",
+                "Vous n'avez pas les droits nécessaires.", "access-denied");
     }
 
     /**
@@ -236,7 +236,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         ex.getBindingResult().getGlobalErrors().forEach(error ->
                 fieldErrors.putIfAbsent(error.getObjectName(), error.getDefaultMessage()));
 
-        ProblemDetail body = problem(HttpStatus.BAD_REQUEST, "Requete invalide",
+        ProblemDetail body = problem(HttpStatus.BAD_REQUEST, "Requête invalide",
                 "Un ou plusieurs champs sont invalides.", "validation");
         body.setProperty("errors", fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);

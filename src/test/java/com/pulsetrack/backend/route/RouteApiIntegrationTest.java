@@ -66,7 +66,7 @@ class RouteApiIntegrationTest extends AbstractApiIntegrationTest {
                                 {"workoutId": "%s", "name": "Salle"}
                                 """.formatted(workoutId)))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.title").value("Regle metier non respectee"));
+                .andExpect(jsonPath("$.title").value("Règle métier non respectée"));
     }
 
     @Test

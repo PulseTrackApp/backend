@@ -35,7 +35,7 @@ public class ProfileService {
     public ProfileResponse getByUserId(UUID userId) {
         return profiles.findByUserId(userId)
                 .map(this::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Aucun profil renseigne pour ce compte."));
+                .orElseThrow(() -> new ResourceNotFoundException("Aucun profil renseigné pour ce compte."));
     }
 
     /**
@@ -85,18 +85,18 @@ public class ProfileService {
     @Transactional
     public ProfileResponse patch(UUID userId, ProfilePatchRequest request) {
         if (request.isEmpty()) {
-            throw new BusinessRuleException("Aucune modification demandee.");
+            throw new BusinessRuleException("Aucune modification demandée.");
         }
 
         UserProfile profile = profiles.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Aucun profil renseigne pour ce compte : enregistre-le en entier d'abord."));
+                        "Aucun profil renseigné pour ce compte : enregistre-le en entier d'abord."));
 
         String displayName = profile.getDisplayName();
         if (request.displayName() != null) {
             displayName = request.displayName().trim();
             if (displayName.isEmpty()) {
-                throw new BusinessRuleException("Le nom affiche ne peut pas etre vide.");
+                throw new BusinessRuleException("Le nom affiché ne peut pas être vide.");
             }
         }
 
@@ -134,7 +134,7 @@ public class ProfileService {
         return profiles.findByUserId(userId)
                 .map(UserProfile::getCurrentWeightKg)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Renseignez votre profil (poids, taille) avant d'enregistrer une seance."));
+                        "Renseignez votre profil (poids, taille) avant d'enregistrer une séance."));
     }
 
     /**
