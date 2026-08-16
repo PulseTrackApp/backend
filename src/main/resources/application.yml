@@ -206,6 +206,73 @@ pulsetrack:
     # sur un serveur a deux processeurs.
     cache-ttl: PT60S
 
+  client:
+    # Verrou des applications trop anciennes.
+    #
+    # A QUOI CELA SERT : le jour ou l'application devient payante, les APK deja
+    # installes doivent cesser de fonctionner. Sans cela, il suffit de ne pas
+    # mettre a jour pour continuer gratuitement, et le paiement ne s'applique
+    # qu'aux nouveaux venus.
+    #
+    # COMMENT CELA MARCHE : les versions publiees jusqu'ici n'envoient aucun
+    # en-tete de version. Une requete sans en-tete est donc, par construction,
+    # une requete d'un client anterieur a ce dispositif — et c'est cela qui rend
+    # le verrou efficace, il n'y a rien a retro-porter dans les APK distribues.
+    #
+    # NE PAS ACTIVER avant que la version a jour soit publiee ET installee : le
+    # passage a `true` ferme l'application a tout le monde en meme temps, y
+    # compris a ceux qui n'ont pas encore vu la mise a jour dans leur magasin.
+    enforced: ${PULSETRACK_CLIENT_ENFORCED:false}
+    # Version minimale acceptee, au format majeur.mineur.correctif. Laissee a
+    # 0.0.0, le verrou n'a rien a refuser meme actif.
+    minimum-version: ${PULSETRACK_CLIENT_MIN_VERSION:0.0.0}
+    # Ou envoyer quelqu'un dont l'application est trop ancienne. Un refus sans
+    # porte de sortie est une impasse.
+    android-store-url: ${PULSETRACK_ANDROID_STORE_URL:}
+    ios-store-url: ${PULSETRACK_IOS_STORE_URL:}
+
+  billing:
+    # Acces payant. Faux : l'API repond comme avant, et le catalogue ci-dessous
+    # existe uniquement pour que l'application construise son ecran de tarifs
+    # des maintenant, marque « a venir ».
+    #
+    # A NE BASCULER QU'APRES `pulsetrack.client.enforced` : sans le verrou de
+    # version, il suffirait de garder une vieille application pour continuer
+    # gratuitement.
+    enforced: ${PULSETRACK_BILLING_ENFORCED:false}
+    # Duree d'essai, comptee depuis la creation du compte. Elle s'applique
+    # retroactivement aux comptes existants — c'est voulu, ils ont deja eu le
+    # temps d'essayer.
+    trial-days: ${PULSETRACK_TRIAL_DAYS:30}
+    # PRIX D'ATTENTE, A RELIRE AVANT TOUTE PUBLICATION. Ils vivent ici et non
+    # dans le code precisement pour se corriger sans recompiler.
+    plans:
+      - code: 'MONTHLY'
+        name: 'Mensuel'
+        description: 'Tout GymFlow, sans engagement.'
+        price-amount: 2000
+        currency: 'FCFA'
+        period: 'MONTHLY'
+        availability: 'COMING_SOON'
+        highlighted: false
+        features:
+          - 'Seances illimitees et trace GPS'
+          - 'Defis, parcours et records'
+          - 'Statistiques et bilan hebdomadaire'
+          - 'Assistant de coaching'
+      - code: 'YEARLY'
+        name: 'Annuel'
+        description: 'Deux mois offerts par rapport au mensuel.'
+        price-amount: 20000
+        currency: 'FCFA'
+        period: 'YEARLY'
+        availability: 'COMING_SOON'
+        highlighted: true
+        features:
+          - 'Tout le mensuel'
+          - 'Deux mois offerts'
+          - 'Export de tes donnees'
+
   reminders:
     enabled: true
     # Fuseau des rappels planifies. Mono-utilisateur : une seule valeur suffit.

@@ -89,13 +89,37 @@ src/main/java/com/pulsetrack/backend/
 ├── profile/                       Domaine « profil sportif »
 │   └── (même découpage : Controller, Service, Entity, Repository, dto/)
 │
-└── workout/                       Domaine « séances »
-    ├── WorkoutController.java
-    ├── WorkoutService.java
-    ├── WorkoutMetricsCalculator   Le cœur métier : distance, allure, calories
-    ├── WorkoutSession.java        Entité JPA (table workout_sessions)
-    ├── GpsPoint.java              Entité JPA (table gps_points)
-    └── dto/
+├── workout/                       Domaine « séances »
+│   ├── WorkoutController.java
+│   ├── WorkoutService.java
+│   ├── WorkoutMetricsCalculator   Le cœur métier : distance, allure, calories
+│   ├── WorkoutSession.java        Entité JPA (table workout_sessions)
+│   ├── GpsPoint.java              Entité JPA (table gps_points)
+│   └── dto/
+│
+├── motivation/                    Vocabulaire partagé de l'encouragement
+│   ├── Appreciation.java          Verdict + message + un conseil, prêts à afficher
+│   ├── AppreciationTier.java      EXCELLENT → AT_RISK, jamais accusateur
+│   └── Wording.java               Mise en français des grandeurs (6,3 km, 5:30/km)
+│
+├── achievement/                   Records battus et trophées
+│   ├── AchievementDetector.java   Qui décide qu'un record tombe, marges anti-bruit
+│   ├── SportBests.java            Records COURANTS, recalculés à la lecture
+│   └── WorkoutAchievement.java    Un record TOMBÉ tel jour : un fait, il ne change plus
+│
+├── route/                         Parcours rejouables
+│   ├── TrackSimplifier.java       Douglas-Peucker : dessiner, jamais mesurer
+│   ├── SavedRoute.java            Le circuit nommé, il survit à sa séance d'origine
+│   └── RouteService.java          Classement des passages, comparaison à l'arrivée
+│
+├── challenge/                     Défis chronométrés
+│   ├── ChallengePlanner.java      Le plan joué hors ligne : jalons et alertes
+│   ├── ChallengeEvaluator.java    Suivi en cours d'effort, puis verdict
+│   └── DifficultyAssessor.java    L'avis rendu AVANT l'effort : vises-tu juste ?
+│
+└── rating/                        Note de l'utilisateur
+    ├── RatingCalculator.java      Régularité, volume, objectifs, progression
+    └── RatingTier.java            NEW → ATHLETE ; un compte neuf n'a pas zéro
 
 src/main/resources/
 ├── application.yml                Config par défaut (développement)
@@ -163,7 +187,11 @@ exigent l'en-tête `Authorization: Bearer <jeton>`.
 | `POST` | `/me/password` | oui | `200` / `422` | Change le mot de passe et rend une session neuve |
 | `DELETE` | `/me` | oui | `204` / `422` | Supprime définitivement le compte |
 | `GET` | `/me/profile` | oui | `200` / `404` | Lit le profil sportif |
-| `PUT` | `/me/profile` | oui | `200` | Crée ou remplace le profil |
+| `PUT` | `/me/profile` | oui | `200` | Crée ou **remplace** le profil (efface ce qui manque) |
+| `PATCH` | `/me/profile` | oui | `200` / `422` | Modifie les seuls champs fournis |
+| `GET` | `/client/requirements` | **non** | `200` | Version minimale d'application acceptée |
+| `GET` | `/billing/plans` | oui | `200` | Catalogue des offres (« à venir ») |
+| `GET` | `/me/subscription` | oui | `200` | Droit d'usage du compte courant |
 | `POST` | `/workouts` | oui | `201` | Enregistre une séance |
 | `GET` | `/workouts` | oui | `200` | Historique paginé |
 | `GET` | `/workouts/{id}` | oui | `200` / `404` | Détail + trace GPS |
@@ -177,7 +205,23 @@ exigent l'en-tête `Authorization: Bearer <jeton>`.
 | `PUT` | `/me/goals/{id}` | oui | `200` | Modifie la cible ou les dates |
 | `POST` | `/me/goals/{id}/archive` | oui | `200` | Archive sans effacer |
 | `DELETE` | `/me/goals/{id}` | oui | `204` / `404` | Supprime un objectif |
-| `GET` | `/me/weekly-summary` | oui | `200` | Bilan de la semaine pour le dashboard |
+| `GET` | `/workouts/records` | oui | `200` | Records courants, sport par sport (`?sport=RUN`) |
+| `GET` | `/me/weekly-summary` | oui | `200` | Bilan de la semaine, jour par jour, avec appréciation |
+| `POST` | `/me/routes` | oui | `201` / `422` | Enregistre un parcours à partir d'une séance tracée |
+| `GET` | `/me/routes` | oui | `200` | Parcours enregistrés, paginés, sans le tracé |
+| `GET` | `/me/routes/{id}` | oui | `200` / `404` | Détail d'un parcours, tracé compris |
+| `PUT` | `/me/routes/{id}` | oui | `200` / `409` | Renomme un parcours |
+| `DELETE` | `/me/routes/{id}` | oui | `204` / `404` | Supprime le parcours, pas les séances |
+| `GET` | `/me/routes/{id}/attempts` | oui | `200` | Classement des passages sur le circuit |
+| `POST` | `/me/challenges` | oui | `201` / `422` | Se fixe un défi : telle distance en tel temps |
+| `GET` | `/me/challenges` | oui | `200` | Défis paginés (`?status=DRAFT,ACTIVE`) |
+| `GET` | `/me/challenges/{id}` | oui | `200` / `404` | Détail d'un défi |
+| `POST` | `/me/challenges/{id}/start` | oui | `200` / `409` | Arme le chronomètre et rend le plan |
+| `POST` | `/me/challenges/{id}/progress` | oui | `200` | Point d'étape ; n'écrit rien |
+| `POST` | `/me/challenges/{id}/complete` | oui | `200` / `409` | Règle le défi et rend le verdict |
+| `POST` | `/me/challenges/{id}/abandon` | oui | `200` / `409` | Renonce et libère la place |
+| `DELETE` | `/me/challenges/{id}` | oui | `204` / `404` | Supprime le défi |
+| `GET` | `/me/rating` | oui | `200` | Note de l'utilisateur sur 28 jours et encouragement |
 | `GET` | `/me/coach/settings` | oui | `200` | Réglages de l'assistant |
 | `PUT` | `/me/coach/settings` | oui | `200` | Ton, bilan hebdo, alertes |
 | `PUT` | `/me/coach/settings/api-key` | oui | `200` | Dépose la clé Gemini (chiffrée) |
@@ -187,6 +231,7 @@ exigent l'en-tête `Authorization: Bearer <jeton>`.
 | `GET` | `/me/coach/latest` | oui | `200` / `204` | Dernier conseil, sans appeler Gemini |
 | `PUT` | `/me/device-tokens` | oui | `204` | Enregistre l'appareil pour les notifications |
 | `DELETE` | `/me/device-tokens/{token}` | oui | `204` / `404` | Retire l'appareil |
+| `PUT` | `/admin/users/{id}/subscription` | admin | `200` | Accorde, retire ou constate un droit d'usage |
 | `POST` | `/admin/workouts/recompute-metrics` | admin | `200` | Rejoue le calcul des métriques sur l'historique |
 | `GET` | `/actuator/health` | non | `200` | Sonde de santé |
 
@@ -423,6 +468,154 @@ jeton déjà connu pour un autre compte **change de propriétaire** — c'est le
 du téléphone reconnecté avec un compte différent, et sans cela l'ancien compte
 continuerait de recevoir les notifications du nouveau.
 
+## 6 quater. Motivation : records, défis, parcours et note
+
+Quatre fonctionnalités partagent une même règle, et c'est elle qu'il faut retenir
+avant de toucher au code : **rien de tout cela ne passe par l'assistant.** Une
+félicitation ne doit dépendre d'aucune clé tierce, ne rien coûter, et surtout ne
+pas faire patienter deux secondes quelqu'un qui vient de franchir sa ligne
+d'arrivée. Tous les textes rendus sont composés dans `motivation/Wording.java` et
+les classes de messages de chaque domaine, en français et sans accents — la
+convention de tout ce que ce serveur publie déjà.
+
+**Records courants et trophées ne sont pas la même chose**, et c'est la
+distinction structurante du paquet `achievement/` :
+
+- le **record courant** (`SportBests`) se recalcule à chaque lecture. Une séance
+  supprimée doit faire disparaître le record qu'elle détenait, sinon l'écran
+  affiche indéfiniment un chiffre que plus rien ne justifie ;
+- le **trophée** (`WorkoutAchievement`) enregistre qu'un record est tombé tel
+  jour. C'est un fait, il ne change plus. Le conserver sert à deux choses très
+  concrètes : le renvoi d'une séance déjà enregistrée, après une coupure réseau
+  en fin de course, rend exactement la même liste — les félicitations n'explosent
+  pas deux fois et ne se perdent pas ; et l'historique peut badger les séances
+  remarquables sans rejouer la chronologie de tous les records.
+
+**Les marges anti-bruit ne sont pas décoratives.** Le GPS tremble. Sans seuil, une
+sortie identique à la précédente au mètre près ferait tomber un record une fois
+sur deux, et les confettis ne voudraient plus rien dire au bout d'une semaine.
+Chaque catégorie exige donc de dépasser le précédent d'une quantité absolue *et*
+d'une proportion — la première protège les petites valeurs, la seconde les
+grandes. L'allure n'est jamais évaluée sous un kilomètre. Tout est dans
+`AchievementKind`, et chaque seuil a son test.
+
+**Le mode défi ne parle pas au serveur pendant l'effort.** C'est la décision de
+conception la plus importante du paquet `challenge/`. Les alertes à l'approche de
+l'échéance sont ce qui compte le plus dans un défi, et ce sont elles qui
+tomberaient en premier : le réseau est mauvais quand on bouge, et une alerte qui
+attend une réponse HTTP arrive après l'échéance qu'elle annonce. `ChallengePlanner`
+remet donc tout d'avance — jalons, seuils et messages — et le téléphone les joue
+seul, même en mode avion. La route `/progress` existe pour un écran de suivi, mais
+elle n'écrit rien et personne n'est obligé de l'appeler.
+
+**Les tolérances du verdict sont dissymétriques, à dessein** : un pour cent de
+marge sur la distance parce que le GPS ne rend pas 10 000,0 mètres et qu'un défi
+refusé pour huit mètres serait vécu comme une injustice ; aucune marge sur le
+temps, parce qu'une échéance qui pardonne n'est plus une échéance.
+
+**Un parcours se dessine, il ne se mesure pas.** `TrackSimplifier` réduit la trace
+par Douglas-Peucker à cinq mètres de tolérance, pour l'afficher sur une carte. La
+distance d'un parcours reste celle de la séance d'origine, estimée par le filtre
+de Kalman ; la recalculer sur ces points ramènerait exactement la surestimation
+que le filtre corrige. La distance cumulée le long du tracé est *répartie*
+proportionnellement de façon que le dernier point vaille la distance officielle.
+
+Le rattachement d'une séance à un parcours est **déclaratif** : le serveur ne
+vérifie pas que la trace suit le circuit. Comparer deux traces bruitées demande un
+appariement point à point qui coûte cher et se trompe.
+
+**Aucun verdict n'accuse.** Le pire niveau d'appréciation, `AT_RISK`, constate
+qu'un objectif ne sera pas tenu sans effort net ; il ne reproche rien. Un compte
+sans aucune séance ne reçoit pas la note zéro mais un accueil (`RatingTier.NEW`,
+`score` nul). Celui qui a le plus besoin d'encouragement est précisément celui qui
+a le moins couru, et une application de sport qui gronde se désinstalle.
+
+**Le pourcentage d'un objectif hebdomadaire ne dit rien tout seul.** Quarante pour
+cent, c'est de l'avance le mardi et du retard le samedi. C'est pour cela que
+`GoalProgressCalculator` reçoit la fraction de semaine écoulée et rend
+`elapsedPercent`, `onTrack` et une projection : aucun client ne peut faire cette
+comparaison seul sans connaître le fuseau de l'utilisateur.
+
+Le contrat complet destiné à l'application mobile est dans
+`../CONTRAT-MOTIVATION.md`, à la racine du dépôt parent.
+
+## 6 quinquies. Deux verrous, et l'ordre dans lequel on les arme
+
+Le jour où l'application deviendra payante, deux dispositifs devront agir
+ensemble. Ils sont écrits, testés, et **tous deux éteints** : l'API répond
+aujourd'hui exactement comme avant.
+
+**Le verrou de version** (`client/`) refuse les applications trop anciennes en
+`426`. Son mécanisme repose sur une absence, et c'est ce qu'il faut comprendre
+avant de le juger : les APK déjà distribués n'envoient aucun en-tête de version.
+Une requête sans `X-GymFlow-Client-Version` est donc, par construction, une
+requête d'un client antérieur au dispositif. Il n'y a rien à rétro-porter dans
+les applications déjà installées — c'est précisément ce qui rend le verrou
+étanche. Le refus s'applique aussi à `/auth/**` : une application périmée ne doit
+même pas pouvoir créer un compte, sinon le contournement est trivial.
+
+**Le verrou de paiement** (`billing/`) refuse les routes payantes en `402`, avec
+l'offre à afficher dans le corps du refus — relancer une requête pour aller
+chercher un prix au moment où tout est refusé serait absurde.
+
+**L'ordre d'activation n'est pas négociable** :
+`pulsetrack.client.enforced` **puis** `pulsetrack.billing.enforced`. L'inverse
+n'aurait aucun effet : il suffirait de garder une vieille application pour
+continuer gratuitement, et le paiement ne s'appliquerait qu'aux nouveaux venus.
+
+**L'essai ne se stocke pas, il se calcule** depuis `users.created_at`. Ce choix
+évite d'écrire une ligne à chaque inscription, et surtout d'avoir à en fabriquer
+rétroactivement pour tout le parc le jour de la mise en vente. Conséquence
+assumée : les comptes déjà anciens seront `EXPIRED` dès l'activation. Une ligne
+dans `subscriptions` n'apparaît que lorsqu'un droit est accordé ou retiré à la
+main.
+
+**Ce qui reste gratuit quand le paiement est exigé** est une liste explicite, pas
+un joker : un endpoint ajouté demain naît payant, ce qui est le bon défaut —
+l'oubli inverse, une route sensible restée gratuite, ne se verrait jamais. Y
+figurent l'authentification, le profil, les tarifs, l'état de l'abonnement, le
+changement de mot de passe, la suppression de compte et **l'export des données**.
+Retenir les données de quelqu'un parce qu'il a cessé de payer serait
+indéfendable. Un administrateur n'est jamais bloqué non plus, même immunité que
+pour les modules.
+
+Les prix vivent en configuration et non en dur, pour se corriger sans recompiler.
+**Ce sont des valeurs d'attente, à relire avant toute publication.**
+
+## 6 sexies. Pourquoi le profil a un `PATCH`
+
+`PUT /me/profile` remplace le profil entier. C'est correct pour l'écran d'accueil,
+qui saisit tout d'un coup, et c'est le seul moyen de vider un champ facultatif.
+
+Mais un écran qui ne corrige que le poids et rejoue un `PUT` incomplet **efface au
+passage la date de naissance et le sexe**. Les champs obligatoires sont protégés
+par la validation — un `PUT` amputé est refusé en `400` — donc ce sont exactement
+les deux champs optionnels, ceux que l'utilisateur avait pris la peine de
+renseigner en plus, qui disparaissaient sans aucun signal.
+
+`PATCH` ne modifie que ce qui est présent. Un piège s'y cache, et il est gardé par
+un test : `UserProfile.update` vide la collection des sports avant de la remplir.
+Lui passer la collection du profil lui-même la viderait, puis la recopierait
+depuis le vide — les sports pratiqués disparaîtraient à chaque modification
+partielle qui ne les mentionne pas. D'où la copie défensive dans `ProfileService`.
+
+## 6 septies. Un refus d'authentification a désormais un corps
+
+Par défaut, un jeton expiré produit un `401` au corps vide, la cause n'étant que
+dans l'en-tête `WWW-Authenticate`. Le client ne peut alors pas distinguer « ta
+session a expiré » d'une panne réseau, et affiche « une erreur est survenue » dans
+les deux cas — la pire réponse possible, puisque l'utilisateur n'a rien d'autre à
+faire que se reconnecter.
+
+`ApiAuthenticationEntryPoint` habille la réponse standard d'un corps RFC 9457,
+sans la remplacer : l'en-tête exigé par la RFC 6750 reste posé. Trois types de
+problème sont distingués — `token-expired`, `unauthenticated`, `access-denied` —
+et c'est sur eux que le client route sa réaction, jamais sur le code HTTP.
+
+Le détail reste volontairement pauvre pour les jetons illisibles : expliquer ce
+qui cloche dans une signature aiderait à en fabriquer une. L'expiration, elle, ne
+se cache pas — c'est une information que le porteur du jeton possède déjà.
+
 ## 7. Base de données et migrations
 
 Le schéma est du **code versionné**, dans `src/main/resources/db/migration/`.
@@ -447,18 +640,25 @@ docker exec -it pulsetrack-postgres psql -U pulsetrack -d pulsetrack
 
 ## 8. Les tests
 
-119 tests, sur trois niveaux :
+478 tests, sur trois niveaux :
 
 | Niveau | Exemple | Ce qu'il valide | Durée |
 |---|---|---|---|
-| **Unitaire** | `WorkoutMetricsCalculatorTest`, `GoalProgressCalculatorTest`, `BodyProgressCalculatorTest`, `ActivityStreakCalculatorTest`, `ReminderDeciderTest`, `CoachPromptBuilderTest` | La logique métier, sans Spring | ~0,1 s |
+| **Unitaire** | `WorkoutMetricsCalculatorTest`, `GoalProgressCalculatorTest`, `AchievementDetectorTest`, `ChallengeEvaluatorTest`, `ChallengePlannerTest`, `DifficultyAssessorTest`, `RatingCalculatorTest`, `TrackSimplifierTest`, `WeeklyAppreciatorTest`, `ReminderDeciderTest` | La logique métier, sans Spring | ~0,1 s |
 | **Démarrage** | `BackendApplicationTests` | Câblage, config, migrations vs entités | ~20 s |
 | **Intégration** | `*ApiIntegrationTest` | Sécurité, JSON, transactions, vraie base | ~2 s chacun |
 
-Les six calculateurs sont des classes **sans état ni dépendance** : chacun
+Tous les calculateurs sont des classes **sans état ni dépendance** : chacun
 s'instancie avec `new` dans son test. C'est ce qui permet de couvrir les cas
 limites (série vide, division par zéro, poids qui s'éloigne de la cible, rappel
-au sixième jour) en quelques millisecondes, sans démarrer Spring ni Docker.
+au sixième jour, record noyé dans le bruit du GPS, défi manqué de dix secondes)
+en quelques millisecondes, sans démarrer Spring ni Docker.
+
+C'est aussi ce qui rend les **seuils** discutables et révisables. Les marges
+anti-bruit d'un record, les niveaux d'alerte d'un défi, le barème d'une note :
+tous sont des constantes nommées, documentées par un commentaire qui dit pourquoi
+cette valeur-là, et éprouvées par un test qui échoue si on les bouge sans le
+vouloir. Les changer est un geste délibéré, pas un effet de bord.
 
 Deux choix de test à connaître :
 
@@ -523,15 +723,21 @@ La recette, dans l'ordre — par exemple pour le check-in hebdomadaire
 ## 11. Ce qui reste à faire
 
 Les phases 1 à 3 de la roadmap produit sont couvertes : comptes, profils,
-séances, évolution physique, objectifs, agrégats du dashboard, assistant Gemini
-et notifications push. Il reste :
+séances, évolution physique, objectifs, agrégats du dashboard, assistant Gemini,
+notifications push, et depuis le 15 août 2026 les fonctions de motivation
+(records, défis, parcours rejouables, note de l'utilisateur — section 6 quater).
+Il reste :
 
 - **Objectif de performance** (`PERFORMANCE` dans la spec : meilleur temps sur une
-  distance). Volontairement absent de `GoalType` plutôt que livré à moitié : sa
-  progression demande de retrouver le meilleur temps sur une distance donnée, ce
-  qui n'est pas un simple cumul hebdomadaire
-- **Export et suppression** des données personnelles
-- **Refresh tokens** — le jeton dure 24 h et n'est pas renouvelable
+  distance). Toujours absent de `GoalType`, mais le besoin est désormais couvert
+  autrement : un défi porte exactement cette promesse — telle distance en tel
+  temps — et un parcours enregistré donne le meilleur temps sur un circuit. Le
+  jour où l'on voudra en faire un objectif suivi semaine après semaine, c'est
+  `SportBests` qu'il faudra interroger, pas un nouveau cumul hebdomadaire
+- **Vérifier qu'une séance suit vraiment le parcours déclaré.** Le rattachement
+  est déclaratif aujourd'hui. Un appariement point à point coûte cher et se
+  trompe ; si le besoin apparaît, commencer par une comparaison grossière des
+  boîtes englobantes plutôt que par un algorithme d'alignement
 - **Ménage des jetons d'appareil** — `lastSeenAt` est renseigné mais aucun
   traitement ne purge encore les appareils muets depuis des mois
 - **Suggestion de semaine d'entraînement** — la spec la mentionne ; aujourd'hui

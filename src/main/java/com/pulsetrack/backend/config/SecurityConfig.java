@@ -48,7 +48,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            ApiAuthenticationEntryPoint entryPoint,
+                                            ApiAuthenticationEntryPoint.ApiAccessDeniedHandler deniedHandler)
+            throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         // Chemins ouverts enumeres un par un, et non
@@ -85,6 +88,13 @@ public class SecurityConfig {
                                 "/api/v1/auth/verify-email",
                                 "/api/v1/auth/resend-verification").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // Ouverte par necessite : c'est la route qu'un client
+                        // interroge pour savoir s'il doit se mettre a jour. La
+                        // fermer rendrait le dispositif inutilisable, puisqu'une
+                        // application perimee ne pourrait meme pas apprendre
+                        // qu'elle l'est. Elle n'expose qu'un numero de version
+                        // et une adresse de magasin.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/client/requirements").permitAll()
                         // L'espace d'administration est ferme au niveau de la
                         // chaine, avant tout controleur. Le poser ici plutot que
                         // par annotation sur chaque methode garantit qu'un
@@ -104,7 +114,18 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(roleConverter())));
+                // Sans ces deux relais, un jeton expire produit un 401 au corps
+                // vide : le mobile ne peut pas distinguer « ta session a expire »
+                // d'une panne reseau, et affiche « une erreur est survenue » dans
+                // les deux cas — alors que l'utilisateur n'a rien d'autre a faire
+                // que se reconnecter.
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(deniedHandler))
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(deniedHandler)
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(roleConverter())));
         return http.build();
     }
 

@@ -7,6 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.pulsetrack.backend.access.ModuleLockedException;
+import com.pulsetrack.backend.billing.SubscriptionRequiredException;
+import com.pulsetrack.backend.client.ClientUpgradeRequiredException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +37,12 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
-    private static final String PROBLEM_BASE = "https://pulsetrack.app/problems/";
+    /**
+     * Reprise depuis {@link ProblemWriter}, qui sert les refus survenant avant
+     * tout controleur. Deux prefixes differents obligeraient le client a
+     * connaitre deux familles d'URL.
+     */
+    private static final String PROBLEM_BASE = ProblemWriter.PROBLEM_BASE;
 
     @ExceptionHandler(ResourceNotFoundException.class)
     ProblemDetail handleNotFound(ResourceNotFoundException ex) {
@@ -61,6 +68,38 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
      * <p>C'est aussi ce qui distingue ce refus d'un {@code 403} ordinaire, les
      * deux partageant le meme code HTTP.
      */
+    /**
+     * Application trop ancienne. {@code 426} et non {@code 403} : le code dit
+     * exactement de quoi il s'agit, et le corps porte de quoi construire un
+     * ecran utile plutot qu'un refus sec.
+     */
+    @ExceptionHandler(ClientUpgradeRequiredException.class)
+    ProblemDetail handleClientUpgradeRequired(ClientUpgradeRequiredException ex) {
+        ProblemDetail body = problem(HttpStatus.UPGRADE_REQUIRED, "Mise a jour requise",
+                ex.getMessage(), "client-upgrade-required");
+        body.setProperty("minimumVersion", ex.minimumVersion());
+        // Presente meme nulle : le client sait alors que l'ancienne application
+        // n'annoncait aucune version, ce qui est l'information utile.
+        body.setProperty("currentVersion", ex.currentVersion());
+        body.setProperty("storeUrl", ex.storeUrl());
+        return body;
+    }
+
+    /**
+     * Droit d'usage expire. {@code 402} est le seul code HTTP qui dise « il faut
+     * payer » ; le detourner en {@code 403} obligerait le client a deviner.
+     */
+    @ExceptionHandler(SubscriptionRequiredException.class)
+    ProblemDetail handleSubscriptionRequired(SubscriptionRequiredException ex) {
+        ProblemDetail body = problem(HttpStatus.PAYMENT_REQUIRED, "Abonnement requis",
+                ex.getMessage(), "subscription-required");
+        body.setProperty("subscriptionStatus", ex.status().name());
+        // L'offre voyage avec le refus : au moment ou toutes les requetes sont
+        // refusees, en lancer une seconde pour afficher un prix serait absurde.
+        body.setProperty("suggestedPlan", ex.suggestedPlan());
+        return body;
+    }
+
     @ExceptionHandler(ModuleLockedException.class)
     ProblemDetail handleModuleLocked(ModuleLockedException ex) {
         ProblemDetail body = problem(HttpStatus.FORBIDDEN, "Fonctionnalite non activee",

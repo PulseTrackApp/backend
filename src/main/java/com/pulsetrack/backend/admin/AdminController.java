@@ -11,6 +11,9 @@ import com.pulsetrack.backend.admin.dto.AdminUserDetailResponse;
 import com.pulsetrack.backend.admin.dto.AdminUserResponse;
 import com.pulsetrack.backend.admin.dto.UpdateModulesRequest;
 import com.pulsetrack.backend.admin.dto.UpdateRoleRequest;
+import com.pulsetrack.backend.admin.dto.UpdateSubscriptionRequest;
+import com.pulsetrack.backend.billing.SubscriptionService;
+import com.pulsetrack.backend.billing.dto.SubscriptionResponse;
 import com.pulsetrack.backend.common.security.AuthenticatedUser;
 import com.pulsetrack.backend.workout.WorkoutMetricsBackfill;
 
@@ -51,10 +54,14 @@ public class AdminController {
 
     private final AdminUserService adminUsers;
     private final WorkoutMetricsBackfill backfill;
+    private final SubscriptionService subscriptions;
 
-    public AdminController(AdminUserService adminUsers, WorkoutMetricsBackfill backfill) {
+    public AdminController(AdminUserService adminUsers,
+                           WorkoutMetricsBackfill backfill,
+                           SubscriptionService subscriptions) {
         this.adminUsers = adminUsers;
         this.backfill = backfill;
+        this.subscriptions = subscriptions;
     }
 
     /**
@@ -103,6 +110,21 @@ public class AdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         adminUsers.delete(id, AuthenticatedUser.idOf(jwt));
+    }
+
+    /**
+     * Pose ou remplace le droit d'usage d'un compte.
+     *
+     * <p>Seul moyen d'accorder un acces tant qu'aucun encaissement automatique
+     * n'existe : compte offert, abonnement encaisse hors ligne, compte suspendu.
+     * C'est aussi ce qui permet de mettre un compte de test en {@code EXPIRED}
+     * pour eprouver l'ecran de paiement sans attendre la fin d'un essai.
+     */
+    @PutMapping("/users/{id}/subscription")
+    public SubscriptionResponse updateSubscription(@PathVariable UUID id,
+                                                   @Valid @RequestBody UpdateSubscriptionRequest request) {
+        return subscriptions.grant(id, request.status(), request.planCode(),
+                request.periodEnd(), request.note());
     }
 
     @GetMapping("/stats")

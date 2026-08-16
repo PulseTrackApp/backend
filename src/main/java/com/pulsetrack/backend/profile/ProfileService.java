@@ -10,7 +10,9 @@ import java.util.UUID;
 
 import com.pulsetrack.backend.bodycheckin.BodyMassIndexCalculator;
 import com.pulsetrack.backend.common.domain.SportType;
+import com.pulsetrack.backend.common.error.BusinessRuleException;
 import com.pulsetrack.backend.common.error.ResourceNotFoundException;
+import com.pulsetrack.backend.profile.dto.ProfilePatchRequest;
 import com.pulsetrack.backend.profile.dto.ProfileRequest;
 import com.pulsetrack.backend.profile.dto.ProfileResponse;
 
@@ -56,6 +58,66 @@ public class ProfileService {
                 request.fitnessLevel(),
                 request.preferredSports(),
                 now);
+
+        return toResponse(profiles.save(profile));
+    }
+
+    /**
+     * Modifie les seuls champs fournis, et laisse les autres intacts.
+     *
+     * <p><strong>Ce que cette methode empeche.</strong> Un ecran qui ne corrige
+     * que le poids et rejoue un {@code PUT} incomplet efface au passage la date
+     * de naissance et le sexe — les deux champs facultatifs — sans qu'aucune
+     * validation ne s'y oppose. Les champs obligatoires, eux, sont proteges : un
+     * remplacement ampute est refuse en {@code 400}. C'etait donc precisement ce
+     * que l'utilisateur avait pris la peine de renseigner en plus qui se perdait
+     * silencieusement.
+     *
+     * @throws ResourceNotFoundException si le profil n'existe pas encore : une
+     *                                   modification partielle n'a rien a
+     *                                   modifier, et creer un profil a moitie
+     *                                   rempli laisserait un poids a zero qui
+     *                                   fausserait toutes les calories
+     * @throws BusinessRuleException     si le corps ne demande aucun changement ;
+     *                                   repondre 200 laisserait croire a une
+     *                                   modification enregistree
+     */
+    @Transactional
+    public ProfileResponse patch(UUID userId, ProfilePatchRequest request) {
+        if (request.isEmpty()) {
+            throw new BusinessRuleException("Aucune modification demandee.");
+        }
+
+        UserProfile profile = profiles.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Aucun profil renseigne pour ce compte : enregistre-le en entier d'abord."));
+
+        String displayName = profile.getDisplayName();
+        if (request.displayName() != null) {
+            displayName = request.displayName().trim();
+            if (displayName.isEmpty()) {
+                throw new BusinessRuleException("Le nom affiche ne peut pas etre vide.");
+            }
+        }
+
+        // Copie defensive indispensable : `update` vide la collection avant de la
+        // remplir. Lui passer la collection du profil lui-meme la viderait, puis
+        // la recopierait depuis le vide — les sports pratiques disparaitraient a
+        // chaque modification partielle qui ne les mentionne pas.
+        Set<SportType> sports = request.preferredSports() == null
+                ? Set.copyOf(profile.getPreferredSports())
+                : request.preferredSports();
+
+        profile.update(
+                displayName,
+                request.heightCm() == null ? profile.getHeightCm() : request.heightCm(),
+                request.currentWeightKg() == null ? profile.getCurrentWeightKg() : request.currentWeightKg(),
+                request.birthDate() == null ? profile.getBirthDate() : request.birthDate(),
+                request.sex() == null ? profile.getSex() : request.sex(),
+                request.primaryGoal() == null ? profile.getPrimaryGoal() : request.primaryGoal(),
+                request.fitnessLevel() == null ? profile.getFitnessLevel() : request.fitnessLevel(),
+                sports,
+                Instant.now());
 
         return toResponse(profiles.save(profile));
     }
