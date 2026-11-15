@@ -71,6 +71,16 @@ pulsetrack:
     # ou rejette une adresse d'expedition qui ne lui appartient pas.
     from: ${PULSETRACK_MAIL_FROM:}
 
+  support:
+    # Adresse a laquelle arrivent les messages ecrits depuis l'ecran d'aide de
+    # l'application. Elle ne descend jamais jusqu'au client : le mobile envoie un
+    # sujet et un texte, et ignore le destinataire.
+    #
+    # Laissee vide, les messages partent dans les journaux du serveur au lieu
+    # d'un courriel. Rien ne tombe en panne, mais personne n'est prevenu : a
+    # renseigner en meme temps que PULSETRACK_MAIL_ENABLED.
+    recipient: ${PULSETRACK_SUPPORT_RECIPIENT:}
+
   gemini:
     api-key: ${PULSETRACK_GEMINI_API_KEY:}
 

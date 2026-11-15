@@ -77,9 +77,38 @@ public class DeviceTokenService {
         return delivered;
     }
 
+    /**
+     * Envoie a tous les comptes ayant au moins un appareil enregistre.
+     *
+     * <p>Un compte en echec n'interrompt pas les suivants : sur une diffusion,
+     * l'echec d'un telephone ne doit pas priver tous les autres du message.
+     *
+     * <p>Compte par compte et non jeton par jeton, pour que le resultat dise les
+     * deux choses qui interessent : combien de personnes ont ete visees, et
+     * combien d'appareils ont recu. L'ecart entre les deux se lit tout seul.
+     */
+    @Transactional
+    public Delivery notifyAll(PushNotification notification) {
+        List<UUID> recipients = userIdsWithDevices();
+        int devices = 0;
+        for (UUID userId : recipients) {
+            devices += notifyUser(userId, notification);
+        }
+        return new Delivery(recipients.size(), devices);
+    }
+
     /** Utilisateurs disposant d'au moins un appareil, seuls destinataires possibles. */
     @Transactional(readOnly = true)
     public List<UUID> userIdsWithDevices() {
         return tokens.findDistinctUserIds();
+    }
+
+    /**
+     * Resultat d'une diffusion.
+     *
+     * @param recipients comptes vises
+     * @param devices    appareils joints
+     */
+    public record Delivery(int recipients, int devices) {
     }
 }

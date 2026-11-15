@@ -47,6 +47,11 @@ public class SubscriptionInterceptor implements HandlerInterceptor {
             "/api/v1/me/password",
             // Portabilite des donnees : elle ne se monnaye pas.
             "/api/v1/me/export",
+            // Ecrire a l'assistance. Quelqu'un dont l'essai vient de finir, ou
+            // qui n'arrive pas a payer, doit precisement pouvoir le signaler :
+            // fermer ce canal rendrait le probleme insoluble au moment meme ou
+            // il se pose.
+            "/api/v1/me/support",
             // L'assistant de coaching n'entre pas dans l'offre payante. Ce n'est
             // pas une faveur : il tourne sur une cle personnelle, il n'est ouvert
             // a personne d'autre, et il n'est donc pas vendu. Son acces est

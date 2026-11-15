@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import com.pulsetrack.backend.access.AppModule;
 import com.pulsetrack.backend.admin.dto.AdminModuleResponse;
+import com.pulsetrack.backend.admin.dto.AdminNotificationRequest;
+import com.pulsetrack.backend.admin.dto.AdminNotificationResponse;
 import com.pulsetrack.backend.admin.dto.AdminStatsResponse;
 import com.pulsetrack.backend.admin.dto.AdminUserDetailResponse;
 import com.pulsetrack.backend.admin.dto.AdminUserResponse;
@@ -56,13 +58,16 @@ public class AdminController {
     private final AdminUserService adminUsers;
     private final WorkoutMetricsBackfill backfill;
     private final SubscriptionService subscriptions;
+    private final AdminNotificationService notifications;
 
     public AdminController(AdminUserService adminUsers,
                            WorkoutMetricsBackfill backfill,
-                           SubscriptionService subscriptions) {
+                           SubscriptionService subscriptions,
+                           AdminNotificationService notifications) {
         this.adminUsers = adminUsers;
         this.backfill = backfill;
         this.subscriptions = subscriptions;
+        this.notifications = notifications;
     }
 
     /**
@@ -145,6 +150,22 @@ public class AdminController {
                                                    @Valid @RequestBody UpdateSubscriptionRequest request) {
         return subscriptions.grant(id, request.status(), request.planCode(),
                 request.periodEnd(), request.note());
+    }
+
+    /**
+     * Pousse une notification vers un compte, ou vers tous.
+     *
+     * <p>Le seul canal pour joindre les utilisateurs sans attendre un rappel
+     * planifie : une panne annoncee, une nouveaute, un mot a une personne
+     * precise. Sans lui, la seule facon d'ecrire a quelqu'un etait d'ajouter une
+     * tache planifiee dans le code et de redeployer.
+     *
+     * <p>Ne renvoie aucune donnee personnelle, seulement des compteurs.
+     */
+    @PostMapping("/notifications")
+    public AdminNotificationResponse notify(@AuthenticationPrincipal Jwt jwt,
+                                            @Valid @RequestBody AdminNotificationRequest request) {
+        return notifications.send(request, AuthenticatedUser.idOf(jwt));
     }
 
     @GetMapping("/stats")

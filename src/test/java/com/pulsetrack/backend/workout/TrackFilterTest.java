@@ -165,6 +165,29 @@ class TrackFilterTest {
                 .isBetween(trueDistance * 0.90, trueDistance * 1.10);
     }
 
+    /**
+     * Le portage mobile doit rendre exactement le meme chiffre que ce filtre.
+     *
+     * <p>C'est la garantie qui manquait : tant que l'application calculait la
+     * distance a sa facon, la carte annoncait 6,00 km pour une seance
+     * enregistree a 5,57, et rien ne disait laquelle des deux avait raison.
+     *
+     * <p>Le pendant de ce test vit dans
+     * {@code mobile_flutter/test/features/tracking/track_filter_test.dart}. Les
+     * deux fabriquent la meme trace — le generateur de {@code java.util.Random}
+     * y est reimplemente pour cela — et attendent la meme valeur, ecrite en
+     * clair des deux cotes. Si l'un des deux filtres derive, les deux tests
+     * tombent, et le chiffre attendu dit dans quel sens.
+     */
+    @Test
+    void rend_le_meme_chiffre_que_le_portage_mobile() {
+        List<GpsPointRequest> track = straightWalk(1.4, 3, 400, new Random(42));
+
+        assertThat(filteredDistance(track))
+                .as("distance filtree, a reporter dans track_filter_test.dart")
+                .isCloseTo(1692.9312794489467, org.assertj.core.data.Offset.offset(0.01));
+    }
+
     // --- fabrication des traces --------------------------------------------
 
     /** Marche ou course en ligne droite, bruitee comme le ferait un GPS. */

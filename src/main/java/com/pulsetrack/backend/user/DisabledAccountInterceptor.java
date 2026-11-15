@@ -40,6 +40,10 @@ public class DisabledAccountInterceptor implements HandlerInterceptor {
     private static final Set<String> FREE_PREFIXES = Set.of(
             "/api/v1/auth",
             "/api/v1/me/export",
+            // Contester la suspension. C'est le seul canal qui reste a quelqu'un
+            // dont le compte vient d'etre ferme : le lui retirer rendrait la
+            // decision inattaquable, y compris quand elle est une erreur.
+            "/api/v1/me/support",
             "/actuator");
 
     /** Suppression de son propre compte : {@code DELETE /api/v1/me}, chemin exact. */

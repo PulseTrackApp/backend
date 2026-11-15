@@ -164,6 +164,24 @@ pulsetrack:
     enabled: false
     from: ''
 
+  support:
+    # Ou arrivent les messages ecrits depuis l'ecran d'aide de l'application.
+    #
+    # CETTE ADRESSE NE DESCEND JAMAIS JUSQU'AU CLIENT. L'application affiche un
+    # formulaire — sujet, message — et ignore a qui cela aboutit. Elle affichait
+    # auparavant l'adresse en clair, ce qui revenait a la publier : un binaire se
+    # decompile, et une adresse ainsi exposee finit dans les listes de diffusion
+    # non sollicitees sans qu'on puisse l'en retirer.
+    #
+    # Laissee vide, le formulaire continue de repondre et les messages partent
+    # dans les journaux du serveur : rien n'est perdu, et rien ne tombe en panne.
+    recipient: ${PULSETRACK_SUPPORT_RECIPIENT:}
+    # Un formulaire qui declenche un courriel est une machine a inonder une boite
+    # aux lettres. Trois messages par heure et par compte : assez pour signaler un
+    # probleme puis le preciser, trop peu pour nuire.
+    max-messages: 3
+    window: PT1H
+
   access:
     # Compte promu administrateur, au demarrage s'il existe deja et a
     # l'inscription sinon. Vide, aucune promotion n'a lieu et l'espace
